@@ -1,0 +1,89 @@
+name: New Skill Proposal
+description: Propose a new skill for dotnet-claude-kit
+title: "[Skill] "
+labels: ["skill", "enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for proposing a new skill! Please fill out the details below.
+
+  - type: input
+    id: skill-name
+    attributes:
+      label: Skill Name
+      description: The kebab-case name for the skill directory (e.g., "rate-limiting")
+      placeholder: skill-name
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What does this skill cover? When should Claude load it?
+      placeholder: |
+        This skill covers...
+        Claude should load it when...
+    validations:
+      required: true
+
+  - type: textarea
+    id: core-patterns
+    attributes:
+      label: Core Patterns
+      description: What are the 3-5 most important patterns this skill should teach?
+      placeholder: |
+        1. Pattern A — ...
+        2. Pattern B — ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: anti-patterns
+    attributes:
+      label: Anti-patterns
+      description: What common mistakes should this skill prevent?
+      placeholder: |
+        - Don't use X because...
+        - Instead of Y, use Z because...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: agent
+    attributes:
+      label: Primary Agent
+      description: Which agent would primarily use this skill?
+      options:
+        - dotnet-architect
+        - api-designer
+        - ef-core-specialist
+        - test-engineer
+        - security-auditor
+        - performance-analyst
+        - devops-engineer
+        - code-reviewer
+        - New agent needed
+    validations:
+      required: true
+
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: Links to official documentation, blog posts, or other resources
+      placeholder: |
+        - https://learn.microsoft.com/...
+        - https://...
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: This skill doesn't overlap significantly with an existing skill
+          required: true
+        - label: I've checked the spec (`docs/dotnet-claude-kit-SPEC.md`) for alignment
+          required: true
+        - label: I'm willing to contribute the implementation (optional)

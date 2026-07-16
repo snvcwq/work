@@ -1,0 +1,72 @@
+@implements IDisposable
+@inject dashboard.Data.MongoContext Db
+
+<aside class="sidebar">
+    <div class="sidebar-brand">
+        <span class="brand-mark">d</span>
+        <span class="brand-name">dashboard</span>
+    </div>
+
+    <nav class="sidebar-nav">
+        <NavLink class="nav-item nav-item-tasks" href="/" Match="NavLinkMatch.All">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 11l3 3L22 4" />
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+            </svg>
+            <span>tasks</span>
+            @if (taskCount > 0)
+            {
+                <span class="nav-badge">@taskCount</span>
+            }
+        </NavLink>
+        <NavLink class="nav-item nav-item-prs" href="/prs">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="18" cy="18" r="3" />
+                <circle cx="6" cy="6" r="3" />
+                <path d="M13 6h3a2 2 0 0 1 2 2v7" />
+                <line x1="6" y1="9" x2="6" y2="21" />
+            </svg>
+            <span>prs</span>
+            @if (prCount > 0)
+            {
+                <span class="nav-badge">@prCount</span>
+            }
+        </NavLink>
+    </nav>
+
+    <div class="sidebar-footer">
+        <span class="status-dot"></span>
+        <span>local &middot; mongodb</span>
+    </div>
+</aside>
+
+@code {
+    private int taskCount;
+    private int prCount;
+    private Timer? refreshTimer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Load();
+        refreshTimer = new Timer(async _ => await InvokeAsync(async () =>
+        {
+            await Load();
+            StateHasChanged();
+        }), null, 4000, 4000);
+    }
+
+    private async Task Load()
+    {
+        try
+        {
+            taskCount = (await Db.GetAllTasksAsync()).Count;
+            prCount = (await Db.GetAllPrsAsync()).Count;
+        }
+        catch (MongoDB.Driver.MongoException)
+        {
+            // sidebar counts are a nice-to-have; leave last-known values on a hiccup
+        }
+    }
+
+    public void Dispose() => refreshTimer?.Dispose();
+}

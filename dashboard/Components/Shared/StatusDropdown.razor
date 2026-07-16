@@ -1,0 +1,53 @@
+@typeparam TStatus where TStatus : struct, Enum
+
+<div class="status-pill status-@Value.ToString().ToLowerInvariant()" @onclick="Toggle">
+    <span class="status-pill-dot"></span>
+    <span class="status-pill-label">@Label(Value)</span>
+    <svg class="status-pill-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="6 9 12 15 18 9" />
+    </svg>
+
+    @if (open)
+    {
+        <div class="status-menu-backdrop" @onclick="Close" @onclick:stopPropagation="true"></div>
+        <div class="status-menu" @onclick:stopPropagation="true">
+            @foreach (var s in Enum.GetValues<TStatus>())
+            {
+                <div class="status-menu-item status-@s.ToString().ToLowerInvariant()" @onclick="() => Select(s)">
+                    <span class="status-pill-dot"></span>
+                    <span class="status-menu-item-label">@Label(s)</span>
+                    @if (EqualityComparer<TStatus>.Default.Equals(s, Value))
+                    {
+                        <svg class="status-menu-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public TStatus Value { get; set; }
+    [Parameter] public EventCallback<TStatus> ValueChanged { get; set; }
+    [Parameter] public Func<TStatus, string>? Format { get; set; }
+
+    private bool open;
+
+    private string Label(TStatus s) => Format?.Invoke(s) ?? s.ToString();
+
+    private void Toggle() => open = !open;
+
+    private void Close() => open = false;
+
+    private async Task Select(TStatus s)
+    {
+        open = false;
+        if (!EqualityComparer<TStatus>.Default.Equals(s, Value))
+        {
+            Value = s;
+            await ValueChanged.InvokeAsync(s);
+        }
+    }
+}

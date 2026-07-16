@@ -1,0 +1,27 @@
+{
+  "name": "dotnet-claude-kit",
+  "owner": {
+    "name": "Mukesh Murugan",
+    "url": "https://codewithmukesh.com"
+  },
+  "metadata": {
+    "description": "The definitive Claude Code companion for .NET developers"
+  },
+  "plugins": [
+    {
+      "name": "dotnet-claude-kit",
+      "source": "./",
+      "description": "45 skills (incl. 14 slash-command workflows), 10 agents, 10 rules, 5 templates, Roslyn MCP server for .NET 10 / C# 14",
+      "version": "0.10.0",
+      "license": "MIT",
+      "keywords": [
+        "dotnet",
+        "csharp",
+        "aspnet",
+        "efcore",
+        "slash-commands",
+        "rules"
+      ]
+    }
+  ]
+}

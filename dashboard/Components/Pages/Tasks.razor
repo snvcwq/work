@@ -1,0 +1,204 @@
+@page "/"
+@page "/tasks"
+@rendermode InteractiveServer
+@implements IDisposable
+@inject dashboard.Data.MongoContext Db
+@using dashboard.Models
+@using MongoDB.Driver
+
+<PageTitle>dashboard</PageTitle>
+
+<div class="page page-tasks">
+    <div class="page-header">
+        <div class="page-heading">
+            <span class="page-icon page-icon-tasks">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 11l3 3L22 4" />
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                </svg>
+            </span>
+            <div>
+                <h1>tasks</h1>
+                <p class="page-subtitle">@(tasks?.Count ?? 0) tracked &middot; drag to reprioritize</p>
+            </div>
+        </div>
+        <button class="btn-primary" @onclick="ToggleAddForm">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            add task
+        </button>
+    </div>
+
+    @if (showAddForm)
+    {
+        <div class="add-form">
+            <input class="input-number" @bind="newNumber" placeholder="number" />
+            <input class="input-url" @bind="newUrl" placeholder="url" />
+            <input class="input-title" @bind="newTitle" placeholder="title" />
+            <button class="btn-primary" @onclick="AddTask">add</button>
+            <button class="btn-ghost" @onclick="ToggleAddForm">cancel</button>
+        </div>
+    }
+
+    @if (connectionError)
+    {
+        <div class="empty-state error-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 9v4" /><path d="M12 17h.01" />
+                <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+            </svg>
+            <span>can't reach mongodb — is docker running? try <code>docker compose up -d</code> in dashboard/</span>
+        </div>
+    }
+    else if (tasks is null)
+    {
+        <p class="muted">loading…</p>
+    }
+    else if (tasks.Count == 0)
+    {
+        <div class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 11l3 3L22 4" />
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+            </svg>
+            <span>no tasks yet — ask claude to pull some from azure devops, or add one above.</span>
+        </div>
+    }
+    else
+    {
+        <div class="task-list">
+            @for (var i = 0; i < tasks.Count; i++)
+            {
+                var index = i;
+                var task = tasks[index];
+                <div class="task-row" draggable="true" @key="task.Id"
+                     @ondragstart="() => draggedIndex = index"
+                     @ondragover:preventDefault
+                     @ondrop="() => Drop(index)">
+                    <span class="drag-handle">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <circle cx="9" cy="6" r="1.3" /><circle cx="9" cy="12" r="1.3" /><circle cx="9" cy="18" r="1.3" />
+                            <circle cx="15" cy="6" r="1.3" /><circle cx="15" cy="12" r="1.3" /><circle cx="15" cy="18" r="1.3" />
+                        </svg>
+                    </span>
+                    <a class="task-number" href="@task.Url" target="_blank" rel="noopener">#@task.Number</a>
+                    <span class="task-title">@task.Title</span>
+                    @if (PrCount(task.Id) > 0)
+                    {
+                        <a class="pr-count" href="@($"/prs?taskId={task.Id}")">@PrCount(task.Id) pr@(PrCount(task.Id) == 1 ? "" : "s")</a>
+                    }
+                    else
+                    {
+                        <span class="pr-count">0 prs</span>
+                    }
+                    <StatusDropdown TStatus="WorkStatus" @bind-Value="task.Status" @bind-Value:after="() => UpdateStatus(task)" Format="FormatStatus" />
+                    <button class="btn-icon" title="delete" @onclick="() => DeleteTask(task.Id)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 6h18" />
+                            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                        </svg>
+                    </button>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<WorkTask>? tasks;
+    private List<PullRequest> prs = new();
+    private int? draggedIndex;
+    private bool showAddForm;
+    private bool connectionError;
+    private string newNumber = "";
+    private string newUrl = "";
+    private string newTitle = "";
+    private Timer? refreshTimer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Load();
+        refreshTimer = new Timer(async _ => await InvokeAsync(async () =>
+        {
+            if (draggedIndex is null)
+            {
+                await Load();
+                StateHasChanged();
+            }
+        }), null, 4000, 4000);
+    }
+
+    private async Task Load()
+    {
+        try
+        {
+            tasks = await Db.GetAllTasksAsync();
+            prs = await Db.GetAllPrsAsync();
+            connectionError = false;
+        }
+        catch (MongoException)
+        {
+            connectionError = true;
+        }
+    }
+
+    private int PrCount(string taskId) => prs.Count(p => p.TaskId == taskId);
+
+    private static string FormatStatus(WorkStatus s) => s switch
+    {
+        WorkStatus.Undefined => "undefined",
+        WorkStatus.New => "new",
+        WorkStatus.Blocker => "blocker",
+        WorkStatus.PrWaitingForReview => "pr waiting for review",
+        WorkStatus.WaitingForRelease => "waiting for release",
+        WorkStatus.Resolved => "resolved",
+        WorkStatus.Done => "done",
+        _ => s.ToString()
+    };
+
+    private void ToggleAddForm() => showAddForm = !showAddForm;
+
+    private async Task AddTask()
+    {
+        if (string.IsNullOrWhiteSpace(newTitle)) return;
+
+        await Db.CreateTaskAsync(new WorkTask
+        {
+            Number = newNumber,
+            Url = newUrl,
+            Title = newTitle,
+            Status = WorkStatus.Undefined
+        });
+
+        newNumber = "";
+        newUrl = "";
+        newTitle = "";
+        showAddForm = false;
+        await Load();
+    }
+
+    private async Task UpdateStatus(WorkTask task) => await Db.SetTaskStatusAsync(task.Id, task.Status);
+
+    private async Task DeleteTask(string id)
+    {
+        await Db.DeleteTaskCascadeAsync(id);
+        await Load();
+    }
+
+    private async Task Drop(int targetIndex)
+    {
+        if (draggedIndex is null || tasks is null || draggedIndex == targetIndex) return;
+
+        var moved = tasks[draggedIndex.Value];
+        tasks.RemoveAt(draggedIndex.Value);
+        tasks.Insert(targetIndex, moved);
+        draggedIndex = null;
+
+        await Db.ReorderTasksAsync(tasks.Select(t => t.Id).ToList());
+    }
+
+    public void Dispose() => refreshTimer?.Dispose();
+}

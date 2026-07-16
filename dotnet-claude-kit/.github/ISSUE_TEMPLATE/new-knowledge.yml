@@ -1,0 +1,65 @@
+name: Knowledge Update
+description: Suggest an update to a knowledge document
+title: "[Knowledge] "
+labels: ["knowledge", "documentation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Suggest an update or addition to the knowledge documents in `knowledge/`.
+
+  - type: dropdown
+    id: document
+    attributes:
+      label: Target Document
+      description: Which knowledge document should be updated?
+      options:
+        - knowledge/dotnet-whats-new.md
+        - knowledge/common-antipatterns.md
+        - knowledge/package-recommendations.md
+        - knowledge/breaking-changes.md
+        - New ADR (knowledge/decisions/)
+        - New knowledge document
+    validations:
+      required: true
+
+  - type: textarea
+    id: content
+    attributes:
+      label: Proposed Content
+      description: What should be added, updated, or removed?
+      placeholder: |
+        Add a section about...
+        Update the entry for...
+        Remove the outdated reference to...
+    validations:
+      required: true
+
+  - type: textarea
+    id: rationale
+    attributes:
+      label: Rationale
+      description: Why is this change needed?
+      placeholder: |
+        This is needed because...
+    validations:
+      required: true
+
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: Links to official sources supporting this update
+      placeholder: |
+        - https://learn.microsoft.com/...
+        - https://devblogs.microsoft.com/...
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: I've verified this information against official Microsoft documentation
+          required: true
+        - label: This isn't a duplicate of existing content
+          required: true

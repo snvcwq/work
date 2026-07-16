@@ -1,0 +1,16 @@
+# build output
+bin/
+obj/
+
+# IDE
+.idea/
+.vs/
+*.user
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Claude Code: machine/session-local, not meant to sync
+.claude/settings.local.json
+.claude/scheduled_tasks.lock

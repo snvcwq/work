@@ -1,0 +1,149 @@
+# dotnet-claude-kit Quick Reference
+
+A compact reference for all components: slash commands, skills, agents, rules, hooks, and MCP tools.
+
+---
+
+## Slash Commands
+
+Workflow skills at `skills/<name>/SKILL.md` — each registers its `/name` automatically (Claude Code merged slash commands into skills).
+
+| Command | Description | Related Skill / Agent |
+|---------|-------------|----------------------|
+| `/spec` | Relentless questioning until human + AI agree on a persisted spec | -- / -- |
+| `/plan` | Enter plan mode with architecture awareness (consumes specs) | architecture-advisor / dotnet-architect |
+| `/scaffold` | Architecture-aware feature scaffolding (templates inline) | -- / dotnet-architect |
+| `/build-fix` | Bounded build-fix and test-fix loops | -- / build-error-resolver |
+| `/verify` | 7-phase verification pipeline | -- / code-reviewer |
+| `/tdd` | Guided test-driven development workflow | testing / test-engineer |
+| `/code-review` | MCP-powered, blast-radius-prioritized code review | -- / code-reviewer |
+| `/health-check` | Project health assessment with letter grades | -- / code-reviewer |
+| `/security-scan` | Deep security audit (OWASP Top 10, secrets, packages) | -- / security-auditor |
+| `/migrate` | EF Core schema, .NET version, and NuGet migrations | ef-core / ef-core-specialist |
+| `/de-sloppify` | Systematic code cleanup pass | -- / refactor-cleaner |
+| `/checkpoint` | Mid-session save: commit + brief handoff note | -- / -- |
+| `/wrap-up` | Session handoff lifecycle (end-of-session + session start) | instinct-system / -- |
+
+Instinct operations (status, export, import) are modes of the `instinct-system` skill — say "show instincts", "export instincts", or "import instincts".
+
+---
+
+## Skills (45 total)
+
+14 are the workflow skills listed under Slash Commands above; the remaining 31 are knowledge skills:
+
+### .NET Domain (28)
+
+| Category | Skills |
+|----------|--------|
+| Architecture | architecture-advisor, clean-architecture, ddd, vertical-slice, project-structure |
+| API | minimal-api, api-versioning, openapi, scalar, authentication, error-handling |
+| Data | ef-core, configuration |
+| Infrastructure | docker, container-publish, ci-cd, aspire, dependency-injection |
+| Observability | logging, serilog, opentelemetry |
+| Resilience & Performance | caching, resilience, httpclient-factory |
+| Messaging | messaging |
+| Language | modern-csharp |
+| Project | project-setup, testing |
+
+### Workflow & Learning (3)
+
+| Skill | Purpose |
+|-------|---------|
+| convention-learner | Detect and codify project conventions |
+| workflow-mastery | Advanced Claude Code workflow patterns + context discipline |
+| instinct-system | Confidence-scored instincts, correction capture, discovery logging (with status/export/import modes) |
+
+---
+
+## Agents (10)
+
+| Agent | Triggers | Primary Skills |
+|-------|----------|---------------|
+| dotnet-architect | "architecture", "project structure", "set up project", "add module" | architecture-advisor, project-structure, scaffold, project-setup |
+| api-designer | "create endpoint", "API route", "OpenAPI", "versioning" | minimal-api, api-versioning, authentication, error-handling |
+| ef-core-specialist | "database", "migration", "query", "DbContext", "EF" | ef-core, configuration, migrate |
+| test-engineer | "write tests", "test strategy", "WebApplicationFactory", "Testcontainers" | testing |
+| security-auditor | "security", "authentication", "JWT", "OIDC", "authorize" | authentication, configuration |
+| performance-analyst | "performance", "benchmark", "caching", "HybridCache" | caching |
+| devops-engineer | "Docker", "CI/CD", "pipeline", "Aspire", "deploy" | docker, ci-cd, aspire |
+| code-reviewer | "review this code", "PR review", "code quality", "conventions" | code-review, convention-learner |
+| build-error-resolver | Build failures, compilation errors | modern-csharp, build-fix |
+| refactor-cleaner | "clean up", "dead code", "refactor", "remove unused" | modern-csharp |
+
+---
+
+## Rules (10)
+
+| Rule File | Scope | Key Enforcement |
+|-----------|-------|----------------|
+| `coding-style.md` | All C# files | File-scoped namespaces, primary constructors, sealed, records, collection expressions |
+| `architecture.md` | Solution structure | No repo over EF, feature folders, dependency direction, shared kernel contracts only |
+| `security.md` | All code | No hardcoded secrets, parameterized queries, explicit auth, HTTPS, no PII in logs |
+| `testing.md` | Test projects | Integration-first, Testcontainers, AAA, behavior over implementation, no InMemory DB |
+| `performance.md` | All code | CancellationToken, TimeProvider, IHttpClientFactory, HybridCache, async all the way |
+| `error-handling.md` | All code | Result pattern, ProblemDetails, no broad catch, IExceptionHandler, boundary validation |
+| `git-workflow.md` | Git operations | Conventional commits, atomic commits, branch naming, never force-push main |
+| `agents.md` | Agent interactions | MCP-first, subagent routing, skill loading, model selection |
+| `hooks.md` | Hook responses | Auto-accept format, never skip pre-commit, review post-test analysis |
+| `packages.md` | NuGet packages | Always latest stable, never hardcode from training data, `dotnet add` without --version |
+
+All rules have `alwaysApply: true` -- they are enforced on every interaction.
+
+---
+
+## Hooks & Automation Scripts (7)
+
+Only the first three are Claude Code hooks (auto-run via `hooks/hooks.json`); the rest are git pre-commit hooks and workflow utilities (see `hooks/README.md`):
+
+| Script | Kind | Behavior |
+|-------------|-------|----------|
+| `pre-bash-guard.sh` | Claude Code hook — PreToolUse (Bash) | Guards against dangerous bash commands |
+| `post-edit-format.sh` | Claude Code hook — PostToolUse (Edit/Write) | Runs `dotnet format` on modified files |
+| `post-scaffold-restore.sh` | Claude Code hook — PostToolUse (Edit/Write) | Runs `dotnet restore` after .csproj changes |
+| `pre-commit-format.sh` | Git pre-commit (manual install) | Verifies formatting before commit |
+| `pre-commit-antipattern.sh` | Git pre-commit (manual install) | Scans for antipatterns before commit |
+| `pre-build-validate.sh` | Utility script | Validates project structure before build |
+| `post-test-analyze.sh` | Utility script (pipe test output) | Analyzes test results for insights |
+
+---
+
+## MCP Tools (15)
+
+| Tool | Category | Purpose |
+|------|----------|---------|
+| `find_symbol` | Navigation | Locate type/method/property definitions |
+| `find_references` | Navigation | Find all usages of a symbol |
+| `find_implementations` | Navigation | Types implementing an interface or base class |
+| `find_callers` | Navigation | Methods calling a specific method |
+| `find_overrides` | Navigation | Overrides of virtual/abstract methods |
+| `find_dead_code` | Analysis | Unused types, methods, properties |
+| `get_symbol_detail` | Inspection | Full signature, parameters, XML docs |
+| `get_public_api` | Inspection | Public members without reading the file |
+| `get_type_hierarchy` | Inspection | Inheritance chain and derived types |
+| `get_project_graph` | Structure | Solution dependency tree |
+| `get_dependency_graph` | Structure | Recursive call graph for a method |
+| `get_diagnostics` | Quality | Compiler errors and analyzer warnings |
+| `get_test_coverage_map` | Quality | Heuristic test coverage by naming |
+| `detect_antipatterns` | Quality | .NET anti-patterns via Roslyn |
+| `detect_circular_dependencies` | Quality | Cycles in project or type deps |
+
+---
+
+## Cross-Reference: Command to Skill to Agent
+
+| Command | Primary Skill(s) | Primary Agent | Support Agent(s) |
+|---------|-----------------|---------------|-------------------|
+| `/spec` | -- | -- | -- |
+| `/plan` | architecture-advisor | dotnet-architect | -- |
+| `/scaffold` | project-setup | dotnet-architect | api-designer, ef-core-specialist |
+| `/build-fix` | -- | build-error-resolver | -- |
+| `/verify` | -- | code-reviewer | dotnet-architect |
+| `/tdd` | testing | test-engineer | -- |
+| `/code-review` | convention-learner | code-reviewer | -- |
+| `/health-check` | -- | code-reviewer | dotnet-architect |
+| `/security-scan` | authentication | security-auditor | -- |
+| `/migrate` | ef-core | ef-core-specialist | -- |
+| `/de-sloppify` | -- | refactor-cleaner | code-reviewer |
+| `/checkpoint` | -- | -- | -- |
+| `/wrap-up` | instinct-system | -- | -- |

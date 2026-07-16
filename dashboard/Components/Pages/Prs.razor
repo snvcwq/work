@@ -1,0 +1,177 @@
+@page "/prs"
+@rendermode InteractiveServer
+@implements IDisposable
+@inject dashboard.Data.MongoContext Db
+@inject NavigationManager Nav
+@using dashboard.Models
+@using MongoDB.Driver
+
+<PageTitle>dashboard</PageTitle>
+
+<div class="page page-prs">
+    <div class="page-header">
+        <div class="page-heading">
+            <span class="page-icon page-icon-prs">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="18" cy="18" r="3" />
+                    <circle cx="6" cy="6" r="3" />
+                    <path d="M13 6h3a2 2 0 0 1 2 2v7" />
+                    <line x1="6" y1="9" x2="6" y2="21" />
+                </svg>
+            </span>
+            <div>
+                <h1>prs</h1>
+                <p class="page-subtitle">
+                    @(FilteredPrs?.Count ?? 0) tracked
+                    @if (!string.IsNullOrEmpty(TaskIdFilter))
+                    {
+                        <text> of @(prs?.Count ?? 0)</text>
+                    }
+                </p>
+            </div>
+        </div>
+    </div>
+
+    @if (prs is not null && tasksById.Count > 0)
+    {
+        <div class="filter-bar">
+            <select class="filter-select" value="@(TaskIdFilter ?? "")" @onchange="OnFilterChanged">
+                <option value="">all tasks</option>
+                @foreach (var t in tasksById.Values.OrderByDescending(t => t.Priority))
+                {
+                    <option value="@t.Id">#@t.Number @t.Title</option>
+                }
+            </select>
+            @if (!string.IsNullOrEmpty(TaskIdFilter))
+            {
+                <span class="filter-chip">filtered by @TaskLabel(TaskIdFilter) &middot; <a href="/prs">clear</a></span>
+            }
+        </div>
+    }
+
+    @if (connectionError)
+    {
+        <div class="empty-state error-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 9v4" /><path d="M12 17h.01" />
+                <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+            </svg>
+            <span>can't reach mongodb — is docker running? try <code>docker compose up -d</code> in dashboard/</span>
+        </div>
+    }
+    else if (prs is null)
+    {
+        <p class="muted">loading…</p>
+    }
+    else if (prs.Count == 0)
+    {
+        <div class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="18" cy="18" r="3" />
+                <circle cx="6" cy="6" r="3" />
+                <path d="M13 6h3a2 2 0 0 1 2 2v7" />
+                <line x1="6" y1="9" x2="6" y2="21" />
+            </svg>
+            <span>no prs yet — claude adds these once work starts on a task.</span>
+        </div>
+    }
+    else if (FilteredPrs!.Count == 0)
+    {
+        <div class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="18" cy="18" r="3" />
+                <circle cx="6" cy="6" r="3" />
+                <path d="M13 6h3a2 2 0 0 1 2 2v7" />
+                <line x1="6" y1="9" x2="6" y2="21" />
+            </svg>
+            <span>no prs for this task yet.</span>
+        </div>
+    }
+    else
+    {
+        <div class="pr-list">
+            @foreach (var pr in FilteredPrs!)
+            {
+                <div class="pr-row" @key="pr.Id">
+                    <a class="pr-number" href="@pr.Url" target="_blank" rel="noopener">#@pr.Number</a>
+                    <span class="pr-title">@pr.Title</span>
+                    <span class="pr-task">@TaskLabel(pr.TaskId)</span>
+                    <StatusDropdown TStatus="PrStatus" @bind-Value="pr.Status" @bind-Value:after="() => UpdateStatus(pr)" Format="FormatStatus" />
+                    <button class="btn-icon" title="delete" @onclick="() => DeletePr(pr.Id)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 6h18" />
+                            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                        </svg>
+                    </button>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "taskId")]
+    public string? TaskIdFilter { get; set; }
+
+    private List<PullRequest>? prs;
+    private Dictionary<string, WorkTask> tasksById = new();
+    private Timer? refreshTimer;
+    private bool connectionError;
+
+    private List<PullRequest>? FilteredPrs => string.IsNullOrEmpty(TaskIdFilter)
+        ? prs
+        : prs?.Where(p => p.TaskId == TaskIdFilter).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Load();
+        refreshTimer = new Timer(async _ => await InvokeAsync(async () =>
+        {
+            await Load();
+            StateHasChanged();
+        }), null, 4000, 4000);
+    }
+
+    private async Task Load()
+    {
+        try
+        {
+            prs = await Db.GetAllPrsAsync();
+            var allTasks = await Db.GetAllTasksAsync();
+            tasksById = allTasks.ToDictionary(t => t.Id);
+            connectionError = false;
+        }
+        catch (MongoException)
+        {
+            connectionError = true;
+        }
+    }
+
+    private void OnFilterChanged(ChangeEventArgs e)
+    {
+        var value = e.Value?.ToString();
+        Nav.NavigateTo(string.IsNullOrEmpty(value) ? "/prs" : $"/prs?taskId={value}");
+    }
+
+    private string TaskLabel(string taskId) =>
+        tasksById.TryGetValue(taskId, out var t) ? $"#{t.Number} {t.Title}" : "(unknown task)";
+
+    private static string FormatStatus(PrStatus s) => s switch
+    {
+        PrStatus.WaitingForReview => "waiting for review",
+        PrStatus.NeedsChanges => "needs changes",
+        PrStatus.Completed => "completed",
+        _ => s.ToString()
+    };
+
+    private async Task UpdateStatus(PullRequest pr) => await Db.SetPrStatusAsync(pr.Id, pr.Status);
+
+    private async Task DeletePr(string id)
+    {
+        await Db.DeletePrAsync(id);
+        await Load();
+    }
+
+    public void Dispose() => refreshTimer?.Dispose();
+}
