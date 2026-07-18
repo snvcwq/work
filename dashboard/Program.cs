@@ -24,5 +24,8 @@ app.MapRazorComponents<App>()
 
 app.MapTaskEndpoints();
 app.MapPrEndpoints();
+app.MapEventEndpoints();
+app.MapStandupEndpoints();
+app.MapNotifyEndpoints();
 
 app.Run();

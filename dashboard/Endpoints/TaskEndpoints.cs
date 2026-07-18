@@ -43,6 +43,10 @@ public static class TaskEndpoints
             if (!string.IsNullOrWhiteSpace(req.Status) && !Enum.TryParse(req.Status, ignoreCase: true, out status))
                 return Results.BadRequest($"Unknown status '{req.Status}'. Valid: {string.Join(", ", Enum.GetNames<WorkStatus>())}");
 
+            var type = WorkItemType.Undefined;
+            if (!string.IsNullOrWhiteSpace(req.Type) && !Enum.TryParse(req.Type, ignoreCase: true, out type))
+                return Results.BadRequest($"Unknown type '{req.Type}'. Valid: {string.Join(", ", Enum.GetNames<WorkItemType>())}");
+
             if (!string.IsNullOrWhiteSpace(req.Number))
             {
                 var existing = await db.FindTaskByNumberAsync(req.Number);
@@ -55,7 +59,8 @@ public static class TaskEndpoints
                 Number = req.Number,
                 Url = req.Url,
                 Title = req.Title,
-                Status = status
+                Status = status,
+                Type = type
             });
 
             return Results.Created($"/api/tasks/{task.Id}", task);
@@ -71,6 +76,55 @@ public static class TaskEndpoints
 
             var updated = await db.SetTaskStatusAsync(id, status);
             return updated ? Results.Ok() : Results.NotFound();
+        });
+
+        group.MapPut("/{id}/type", async (string id, UpdateTypeRequest req, MongoContext db) =>
+        {
+            if (!MongoContext.IsValidObjectId(id))
+                return Results.BadRequest("Invalid task id.");
+
+            if (!Enum.TryParse<WorkItemType>(req.Type, ignoreCase: true, out var type))
+                return Results.BadRequest($"Unknown type '{req.Type}'. Valid: {string.Join(", ", Enum.GetNames<WorkItemType>())}");
+
+            var updated = await db.SetTaskTypeAsync(id, type);
+            return updated ? Results.Ok() : Results.NotFound();
+        });
+
+        group.MapPut("/{id}/stage", async (string id, UpdateStageRequest req, MongoContext db) =>
+        {
+            if (!MongoContext.IsValidObjectId(id))
+                return Results.BadRequest("Invalid task id.");
+
+            PipelineStage? stage = null;
+            if (!string.IsNullOrWhiteSpace(req.Stage))
+            {
+                if (!Enum.TryParse<PipelineStage>(req.Stage, ignoreCase: true, out var parsed))
+                    return Results.BadRequest($"Unknown stage '{req.Stage}'. Valid: {string.Join(", ", Enum.GetNames<PipelineStage>())}");
+                stage = parsed;
+            }
+
+            var updated = await db.SetTaskStageAsync(id, stage, req.Detail, req.Agent);
+            return updated ? Results.Ok() : Results.NotFound();
+        });
+
+        group.MapPut("/{id}/assignee", async (string id, UpdateAssigneeRequest req, MongoContext db) =>
+        {
+            if (!MongoContext.IsValidObjectId(id))
+                return Results.BadRequest("Invalid task id.");
+
+            var updated = await db.SetTaskAssigneeAsync(id, req.Assignee);
+            return updated ? Results.Ok() : Results.NotFound();
+        });
+
+        group.MapPost("/{id}/comments", async (string id, AddCommentRequest req, MongoContext db) =>
+        {
+            if (!MongoContext.IsValidObjectId(id))
+                return Results.BadRequest("Invalid task id.");
+            if (string.IsNullOrWhiteSpace(req.Text))
+                return Results.BadRequest("Text is required.");
+
+            var added = await db.AddTaskCommentAsync(id, req.Author ?? "unknown", req.Text);
+            return added ? Results.Ok() : Results.NotFound();
         });
 
         group.MapPut("/reorder", async (ReorderRequest req, MongoContext db) =>

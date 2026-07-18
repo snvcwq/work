@@ -1,0 +1,67 @@
+@* Same reasoning as StatusFilterDropdown — a real <select>'s open-state option list is
+   OS-rendered chrome that CSS can't restyle, so this uses the app's own popover pattern. *@
+@using dashboard.Models
+
+<div class="filter-dropdown" @onclick="Toggle">
+    <span class="filter-dropdown-label">@Label()</span>
+    <svg class="filter-dropdown-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="6 9 12 15 18 9" />
+    </svg>
+
+    @if (open)
+    {
+        <div class="status-menu-backdrop" @onclick="Close" @onclick:stopPropagation="true"></div>
+        <div class="status-menu filter-dropdown-menu" @onclick:stopPropagation="true">
+            <div class="status-menu-item" @onclick="() => Select(null)">
+                <span class="status-menu-item-label">all tasks</span>
+                @if (SelectedId is null)
+                {
+                    <svg class="status-menu-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                }
+            </div>
+            @foreach (var t in Tasks)
+            {
+                <div class="status-menu-item" @onclick="() => Select(t.Id)">
+                    <span class="status-menu-item-label">#@t.Number @t.Title</span>
+                    @if (SelectedId == t.Id)
+                    {
+                        <svg class="status-menu-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public IEnumerable<WorkTask> Tasks { get; set; } = Enumerable.Empty<WorkTask>();
+    [Parameter] public string? SelectedId { get; set; }
+    [Parameter] public EventCallback<string?> SelectedIdChanged { get; set; }
+
+    private bool open;
+
+    private string Label()
+    {
+        if (SelectedId is null) return "all tasks";
+        var t = Tasks.FirstOrDefault(t => t.Id == SelectedId);
+        return t is null ? "all tasks" : $"#{t.Number} {t.Title}";
+    }
+
+    private void Toggle() => open = !open;
+
+    private void Close() => open = false;
+
+    private async Task Select(string? id)
+    {
+        open = false;
+        if (id != SelectedId)
+        {
+            SelectedId = id;
+            await SelectedIdChanged.InvokeAsync(id);
+        }
+    }
+}

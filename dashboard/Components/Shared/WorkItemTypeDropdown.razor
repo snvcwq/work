@@ -1,0 +1,105 @@
+@using dashboard.Models
+
+<div class="type-badge @(ReadOnly ? "type-badge-readonly" : "") type-@Value.ToString().ToLowerInvariant()" title="@Label(Value)" @onclick="Toggle">
+    @Icon(Value)
+
+    @if (open)
+    {
+        <div class="status-menu-backdrop" @onclick="Close" @onclick:stopPropagation="true"></div>
+        <div class="status-menu" @onclick:stopPropagation="true">
+            @foreach (var t in Enum.GetValues<WorkItemType>())
+            {
+                <div class="status-menu-item type-@t.ToString().ToLowerInvariant()" @onclick="() => Select(t)">
+                    <span class="type-menu-item-icon">@Icon(t)</span>
+                    <span class="status-menu-item-label">@Label(t)</span>
+                    @if (t == Value)
+                    {
+                        <svg class="status-menu-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public WorkItemType Value { get; set; }
+    [Parameter] public EventCallback<WorkItemType> ValueChanged { get; set; }
+
+    // Type is meant to be set once, when a task is created (matching how it's picked when
+    // pulling a work item from Azure Boards) — not re-classified later, so the per-row badge
+    // on the tasks list is display-only; only the add-task form's dropdown stays interactive.
+    [Parameter] public bool ReadOnly { get; set; }
+
+    private bool open;
+
+    private static readonly Dictionary<WorkItemType, string> Labels = new()
+    {
+        [WorkItemType.Undefined] = "no type",
+        [WorkItemType.Task] = "task",
+        [WorkItemType.Bug] = "bug",
+        [WorkItemType.UserStory] = "user story",
+        [WorkItemType.Feature] = "feature",
+        [WorkItemType.Epic] = "epic",
+    };
+
+    private static string Label(WorkItemType t) => Labels[t];
+
+    // Simple line-art stand-ins for Azure Boards' work item type icons — a checklist for
+    // Task, a bug silhouette, an open book for User Story, a flag for Feature, a crown
+    // for Epic — rather than reproducing Azure's actual (trademarked, filled/colored)
+    // glyphs pixel-for-pixel.
+    private static RenderFragment Icon(WorkItemType t) => t switch
+    {
+        WorkItemType.Task => @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="4" width="16" height="16" rx="3" />
+            <polyline points="8 12.5 11 15.5 16 9" />
+        </svg>,
+        WorkItemType.Bug => @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="14" r="5" />
+            <path d="M12 9V6" />
+            <path d="M9 6l1.5 2" />
+            <path d="M15 6l-1.5 2" />
+            <path d="M7 12H4" />
+            <path d="M7 16H4" />
+            <path d="M20 12h-3" />
+            <path d="M20 16h-3" />
+        </svg>,
+        WorkItemType.UserStory => @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 6.5C10.5 5 8 4 4.5 4v14c3.5 0 6 1 7.5 2.5" />
+            <path d="M12 6.5C13.5 5 16 4 19.5 4v14c-3.5 0-6 1-7.5 2.5" />
+            <line x1="12" y1="6.5" x2="12" y2="21" />
+        </svg>,
+        WorkItemType.Feature => @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="3" x2="5" y2="21" />
+            <path d="M5 4h13l-3 4 3 4H5" />
+        </svg>,
+        WorkItemType.Epic => @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="16" width="16" height="4" rx="1" />
+            <polyline points="4 16 6 8 9.5 13 12 6 14.5 13 18 8 20 16" />
+        </svg>,
+        _ => @<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="8" stroke-dasharray="3 3" />
+        </svg>,
+    };
+
+    private void Toggle()
+    {
+        if (ReadOnly) return;
+        open = !open;
+    }
+
+    private void Close() => open = false;
+
+    private async Task Select(WorkItemType t)
+    {
+        open = false;
+        if (t != Value)
+        {
+            Value = t;
+            await ValueChanged.InvokeAsync(t);
+        }
+    }
+}

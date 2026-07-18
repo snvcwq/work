@@ -3,11 +3,34 @@
 
 <aside class="sidebar">
     <div class="sidebar-brand">
-        <span class="brand-mark">d</span>
+        <span class="brand-mark">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <defs>
+                    <linearGradient id="brandGradient" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+                        <stop style="stop-color: var(--accent-current)" />
+                        <stop offset="1" style="stop-color: var(--accent-current-strong)" />
+                    </linearGradient>
+                </defs>
+                <rect width="24" height="24" rx="7" fill="url(#brandGradient)" />
+                <circle cx="7" cy="16.5" r="2" fill="#04140e" />
+                <circle cx="12.5" cy="11" r="2.6" fill="#04140e" />
+                <circle cx="18" cy="6.5" r="1.6" fill="#04140e" opacity="0.9" />
+            </svg>
+        </span>
         <span class="brand-name">dashboard</span>
     </div>
 
     <nav class="sidebar-nav">
+        <NavLink class="nav-item nav-item-live" href="/live">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 12h4l2-7 4 14 2-7h6" />
+            </svg>
+            <span>live</span>
+            @if (blockedCount > 0)
+            {
+                <span class="nav-badge">@blockedCount</span>
+            }
+        </NavLink>
         <NavLink class="nav-item nav-item-tasks" href="/" Match="NavLinkMatch.All">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M9 11l3 3L22 4" />
@@ -32,17 +55,49 @@
                 <span class="nav-badge">@prCount</span>
             }
         </NavLink>
+        <NavLink class="nav-item nav-item-events" href="/events">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 8v4l3 3" />
+                <circle cx="12" cy="12" r="9" />
+            </svg>
+            <span>events</span>
+            @if (unackEventCount > 0)
+            {
+                <span class="nav-badge">@unackEventCount</span>
+            }
+        </NavLink>
+        <NavLink class="nav-item nav-item-standup" href="/standup">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="4" y="3" width="16" height="18" rx="2" />
+                <path d="M9 3v2a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1V3" />
+                <path d="M8 12l2.5 2.5L16 9" />
+            </svg>
+            <span>standup</span>
+        </NavLink>
     </nav>
 
     <div class="sidebar-footer">
         <span class="status-dot"></span>
         <span>local &middot; mongodb</span>
+        <!-- Plain DOM button, not @onclick — handled by the delegated listener registered
+             inline in App.razor's <head> so switching feels instant, no SignalR round trip. -->
+        <button id="theme-toggle" class="theme-toggle" type="button" title="toggle theme">
+            <svg class="theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="4" />
+                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+            </svg>
+            <svg class="theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" />
+            </svg>
+        </button>
     </div>
 </aside>
 
 @code {
     private int taskCount;
     private int prCount;
+    private int unackEventCount;
+    private int blockedCount;
     private Timer? refreshTimer;
 
     protected override async Task OnInitializedAsync()
@@ -59,8 +114,11 @@
     {
         try
         {
-            taskCount = (await Db.GetAllTasksAsync()).Count;
+            var allTasks = await Db.GetAllTasksAsync();
+            taskCount = allTasks.Count;
+            blockedCount = allTasks.Count(t => t.Stage == dashboard.Models.PipelineStage.BlockedOnHuman);
             prCount = (await Db.GetAllPrsAsync()).Count;
+            unackEventCount = (await Db.GetNotableEventsAsync(unacknowledgedOnly: true)).Count;
         }
         catch (MongoDB.Driver.MongoException)
         {

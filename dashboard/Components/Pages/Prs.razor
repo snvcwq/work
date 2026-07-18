@@ -22,29 +22,32 @@
             <div>
                 <h1>prs</h1>
                 <p class="page-subtitle">
-                    @(FilteredPrs?.Count ?? 0) tracked
-                    @if (!string.IsNullOrEmpty(TaskIdFilter))
+                    @(FilteredPrs.Count) tracked
+                    @if (IsFiltering && prs is not null)
                     {
-                        <text> of @(prs?.Count ?? 0)</text>
+                        <text> of @prs.Count</text>
                     }
                 </p>
             </div>
         </div>
     </div>
 
-    @if (prs is not null && tasksById.Count > 0)
+    @if (prs is not null && prs.Count > 0)
     {
         <div class="filter-bar">
-            <select class="filter-select" value="@(TaskIdFilter ?? "")" @onchange="OnFilterChanged">
-                <option value="">all tasks</option>
-                @foreach (var t in tasksById.Values.OrderByDescending(t => t.Priority))
-                {
-                    <option value="@t.Id">#@t.Number @t.Title</option>
-                }
-            </select>
+            <input class="search-input" type="search" placeholder="search by number or title…" @bind="searchText" @bind:event="oninput" />
+            <StatusFilterDropdown TStatus="PrStatus" @bind-Value="statusFilter" Format="FormatStatus" AllLabel="all statuses" Options="PrStatusOrder" />
+            @if (tasksById.Count > 0)
+            {
+                <TaskFilterDropdown Tasks="tasksById.Values.OrderByDescending(t => t.Priority)" SelectedId="TaskIdFilter" SelectedIdChanged="OnTaskFilterChanged" />
+            }
             @if (!string.IsNullOrEmpty(TaskIdFilter))
             {
                 <span class="filter-chip">filtered by @TaskLabel(TaskIdFilter) &middot; <a href="/prs">clear</a></span>
+            }
+            @if (!string.IsNullOrWhiteSpace(searchText) || statusFilter is not null)
+            {
+                <button class="btn-ghost" @onclick="ClearTextFilters">clear</button>
             }
         </div>
     }
@@ -75,7 +78,7 @@
             <span>no prs yet — claude adds these once work starts on a task.</span>
         </div>
     }
-    else if (FilteredPrs!.Count == 0)
+    else if (FilteredPrs.Count == 0)
     {
         <div class="empty-state">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -84,19 +87,19 @@
                 <path d="M13 6h3a2 2 0 0 1 2 2v7" />
                 <line x1="6" y1="9" x2="6" y2="21" />
             </svg>
-            <span>no prs for this task yet.</span>
+            <span>no prs match this filter.</span>
         </div>
     }
     else
     {
         <div class="pr-list">
-            @foreach (var pr in FilteredPrs!)
+            @foreach (var pr in FilteredPrs)
             {
                 <div class="pr-row" @key="pr.Id">
                     <a class="pr-number" href="@pr.Url" target="_blank" rel="noopener">#@pr.Number</a>
                     <span class="pr-title">@pr.Title</span>
                     <span class="pr-task">@TaskLabel(pr.TaskId)</span>
-                    <StatusDropdown TStatus="PrStatus" @bind-Value="pr.Status" @bind-Value:after="() => UpdateStatus(pr)" Format="FormatStatus" />
+                    <StatusDropdown TStatus="PrStatus" @bind-Value="pr.Status" @bind-Value:after="() => UpdateStatus(pr)" Format="FormatStatus" Options="PrStatusOrder" />
                     <button class="btn-icon" title="delete" @onclick="() => DeletePr(pr.Id)">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M3 6h18" />
@@ -118,10 +121,26 @@
     private Dictionary<string, WorkTask> tasksById = new();
     private Timer? refreshTimer;
     private bool connectionError;
+    private string searchText = "";
 
-    private List<PullRequest>? FilteredPrs => string.IsNullOrEmpty(TaskIdFilter)
-        ? prs
-        : prs?.Where(p => p.TaskId == TaskIdFilter).ToList();
+    private PrStatus? statusFilter;
+
+    private bool IsFiltering => !string.IsNullOrEmpty(TaskIdFilter) || !string.IsNullOrWhiteSpace(searchText) || statusFilter is not null;
+
+    private List<PullRequest> FilteredPrs =>
+        (prs ?? new())
+            .Where(p => string.IsNullOrEmpty(TaskIdFilter) || p.TaskId == TaskIdFilter)
+            .Where(p => statusFilter is null || p.Status == statusFilter)
+            .Where(p => string.IsNullOrWhiteSpace(searchText)
+                || p.Number.Contains(searchText, StringComparison.OrdinalIgnoreCase)
+                || p.Title.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+    private void ClearTextFilters()
+    {
+        searchText = "";
+        statusFilter = null;
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -148,11 +167,8 @@
         }
     }
 
-    private void OnFilterChanged(ChangeEventArgs e)
-    {
-        var value = e.Value?.ToString();
+    private void OnTaskFilterChanged(string? value) =>
         Nav.NavigateTo(string.IsNullOrEmpty(value) ? "/prs" : $"/prs?taskId={value}");
-    }
 
     private string TaskLabel(string taskId) =>
         tasksById.TryGetValue(taskId, out var t) ? $"#{t.Number} {t.Title}" : "(unknown task)";
@@ -160,10 +176,21 @@
     private static string FormatStatus(PrStatus s) => s switch
     {
         PrStatus.WaitingForReview => "waiting for review",
+        PrStatus.Approved => "approved",
         PrStatus.NeedsChanges => "needs changes",
         PrStatus.Completed => "completed",
         _ => s.ToString()
     };
+
+    // Approved was appended to the enum (to keep existing stored statuses' int values
+    // stable) but reads better right after "waiting for review" in the dropdown.
+    private static readonly PrStatus[] PrStatusOrder =
+    [
+        PrStatus.WaitingForReview,
+        PrStatus.Approved,
+        PrStatus.NeedsChanges,
+        PrStatus.Completed
+    ];
 
     private async Task UpdateStatus(PullRequest pr) => await Db.SetPrStatusAsync(pr.Id, pr.Status);
 

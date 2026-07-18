@@ -1,4 +1,7 @@
 @inherits LayoutComponentBase
+@implements IDisposable
+@inject NavigationManager Nav
+@inject IJSRuntime JS
 
 <div class="shell">
     <NavMenu />
@@ -12,3 +15,26 @@
     <a href="." class="reload">reload</a>
     <span class="dismiss">&times;</span>
 </div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        Nav.LocationChanged += OnLocationChanged;
+    }
+
+    // Blazor Server routes within the same circuit (no full page reload), so the
+    // data-page attribute + favicon set by App.razor's inline script at first paint
+    // need to be re-applied after every later in-app navigation too.
+    private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("dashboardApplyPage");
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+    }
+
+    public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
+}

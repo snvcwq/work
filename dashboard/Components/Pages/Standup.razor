@@ -1,0 +1,169 @@
+@page "/standup"
+@rendermode InteractiveServer
+@implements IDisposable
+@inject dashboard.Data.MongoContext Db
+@inject IJSRuntime JS
+@using dashboard.Models
+@using MongoDB.Driver
+
+<PageTitle>dashboard</PageTitle>
+
+<div class="page page-standup">
+    <div class="page-header">
+        <div class="page-heading">
+            <span class="page-icon page-icon-standup">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="4" y="3" width="16" height="18" rx="2" />
+                    <path d="M9 3v2a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1V3" />
+                    <line x1="8" y1="11" x2="16" y2="11" />
+                    <line x1="8" y1="15" x2="16" y2="15" />
+                </svg>
+            </span>
+            <div>
+                <h1>standup</h1>
+                <p class="page-subtitle">a running log of what actually got done — read back through it before tuesday/thursday standup</p>
+            </div>
+        </div>
+    </div>
+
+    @if (connectionError)
+    {
+        <div class="empty-state error-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 9v4" /><path d="M12 17h.01" />
+                <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+            </svg>
+            <span>can't reach mongodb — is docker running? try <code>docker compose up -d</code> in dashboard/</span>
+        </div>
+    }
+    else if (notes is null)
+    {
+        <p class="muted">loading…</p>
+    }
+    else
+    {
+        <div class="standup-note standup-note-today">
+            <div class="standup-note-header">
+                <span class="standup-note-date">today &middot; @FriendlyDate(TodayKey)</span>
+                <div class="standup-note-actions">
+                    <button class="btn-icon btn-icon-standup" title="copy" @onclick="() => Copy(todayText)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="11" height="11" rx="1.5" />
+                            <path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <textarea class="standup-textarea" placeholder="what got done today…"
+                      value="@todayText"
+                      @onfocus="() => todayFocused = true"
+                      @onblur="() => todayFocused = false"
+                      @onchange="OnTodayChange"></textarea>
+        </div>
+
+        @foreach (var note in PastNotes)
+        {
+            <div class="standup-note" @key="note.Date">
+                <div class="standup-note-header">
+                    <span class="standup-note-date">@FriendlyDate(note.Date)</span>
+                    <div class="standup-note-actions">
+                        <button class="btn-icon btn-icon-standup" title="copy" @onclick="() => Copy(note.Text)">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="9" y="9" width="11" height="11" rx="1.5" />
+                                <path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" />
+                            </svg>
+                        </button>
+                        <button class="btn-icon" title="delete" @onclick="() => DeleteNote(note.Date)">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 6h18" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <textarea class="standup-textarea" placeholder="(empty)"
+                          value="@note.Text"
+                          @onchange="e => SaveNote(note.Date, e.Value?.ToString() ?? string.Empty)"></textarea>
+            </div>
+        }
+
+        @if (PastNotes.Count == 0)
+        {
+            <p class="muted standup-empty-hint">no earlier days logged yet.</p>
+        }
+    }
+</div>
+
+@code {
+    private List<StandupNote>? notes;
+    private bool connectionError;
+    private Timer? refreshTimer;
+    private string todayText = "";
+    private bool todayFocused;
+
+    private string TodayKey => DateTime.Now.ToString("yyyy-MM-dd");
+
+    private List<StandupNote> PastNotes =>
+        (notes ?? new()).Where(n => n.Date != TodayKey).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Load();
+        refreshTimer = new Timer(async _ => await InvokeAsync(async () =>
+        {
+            await Load();
+            StateHasChanged();
+        }), null, 4000, 4000);
+    }
+
+    private async Task Load()
+    {
+        try
+        {
+            notes = await Db.GetStandupNotesAsync();
+            if (!todayFocused)
+            {
+                todayText = notes.FirstOrDefault(n => n.Date == TodayKey)?.Text ?? "";
+            }
+            connectionError = false;
+        }
+        catch (MongoException)
+        {
+            connectionError = true;
+        }
+    }
+
+    private async Task OnTodayChange(ChangeEventArgs e)
+    {
+        todayText = e.Value?.ToString() ?? "";
+        await SaveNote(TodayKey, todayText);
+    }
+
+    private async Task SaveNote(string date, string text)
+    {
+        await Db.SetStandupNoteAsync(date, text);
+        await Load();
+    }
+
+    private async Task DeleteNote(string date)
+    {
+        await Db.DeleteStandupNoteAsync(date);
+        await Load();
+    }
+
+    private async Task Copy(string text)
+    {
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", text);
+    }
+
+    private static string FriendlyDate(string dateKey)
+    {
+        var date = DateOnly.ParseExact(dateKey, "yyyy-MM-dd");
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        if (date == today) return date.ToString("MMM d");
+        if (date == today.AddDays(-1)) return "yesterday";
+        return date.ToString("MMM d");
+    }
+
+    public void Dispose() => refreshTimer?.Dispose();
+}

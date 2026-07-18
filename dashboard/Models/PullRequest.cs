@@ -25,5 +25,9 @@ public enum PrStatus
 {
     WaitingForReview,
     NeedsChanges,
-    Completed
+    Completed,
+    // Appended, not inserted — same int-serialization rule as WorkStatus/WorkItemType.
+    // Displayed right after WaitingForReview in the dropdown regardless of this enum's
+    // declaration order — see the Options param on StatusDropdown/StatusFilterDropdown.
+    Approved
 }

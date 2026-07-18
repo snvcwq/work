@@ -65,6 +65,17 @@ public static class PrEndpoints
             return updated ? Results.Ok() : Results.NotFound();
         });
 
+        group.MapPost("/{id}/comments", async (string id, AddCommentRequest req, MongoContext db) =>
+        {
+            if (!MongoContext.IsValidObjectId(id))
+                return Results.BadRequest("Invalid pr id.");
+            if (string.IsNullOrWhiteSpace(req.Text))
+                return Results.BadRequest("Text is required.");
+
+            var added = await db.AddPrCommentAsync(id, req.Author ?? "unknown", req.Text);
+            return added ? Results.Ok() : Results.NotFound();
+        });
+
         group.MapDelete("/{id}", async (string id, MongoContext db) =>
         {
             if (!MongoContext.IsValidObjectId(id))

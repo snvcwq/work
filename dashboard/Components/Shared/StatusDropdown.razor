@@ -11,7 +11,7 @@
     {
         <div class="status-menu-backdrop" @onclick="Close" @onclick:stopPropagation="true"></div>
         <div class="status-menu" @onclick:stopPropagation="true">
-            @foreach (var s in Enum.GetValues<TStatus>())
+            @foreach (var s in Options ?? Enum.GetValues<TStatus>())
             {
                 <div class="status-menu-item status-@s.ToString().ToLowerInvariant()" @onclick="() => Select(s)">
                     <span class="status-pill-dot"></span>
@@ -32,6 +32,10 @@
     [Parameter] public TStatus Value { get; set; }
     [Parameter] public EventCallback<TStatus> ValueChanged { get; set; }
     [Parameter] public Func<TStatus, string>? Format { get; set; }
+    // Overrides the menu's order — a plain enum can't be reordered without an append-only
+    // int-serialization break (see PrStatus.Approved), so display order is a separate
+    // concern from declaration order. Defaults to declaration order when omitted.
+    [Parameter] public IEnumerable<TStatus>? Options { get; set; }
 
     private bool open;
 

@@ -8,16 +8,25 @@
 }
 
 :root {
-    --bg: #111110;
-    --sidebar-bg: #0d0c0b;
-    --surface: #1a1918;
-    --surface-hover: #221f1d;
-    --surface-elevated: #262320;
-    --border: rgba(255, 255, 255, 0.08);
-    --border-strong: rgba(255, 255, 255, 0.16);
-    --text: #f2efe9;
-    --text-secondary: #a39d95;
-    --text-tertiary: #6b655d;
+    /* Soft warm taupe — dimmer and lower-contrast than the earlier "warm stone" and
+       "espresso" attempts. No near-black base, no saturated brown; just a gentle warm
+       lift on plain dark gray, kept quiet rather than "obviously themed". */
+    --bg: #211f1c;
+    --bg-gradient: var(--bg);
+    --sidebar-bg: #1a1815;
+    --sidebar-gradient: var(--sidebar-bg);
+    --surface: #2a2723;
+    --surface-hover: #34302a;
+    --surface-elevated: #3a352e;
+    --surface-sheen: linear-gradient(150deg, rgba(255, 240, 225, 0.03), transparent 45%);
+    --border: rgba(255, 240, 225, 0.08);
+    --border-strong: rgba(255, 240, 225, 0.16);
+    --overlay-weak: rgba(255, 240, 225, 0.04);
+    --overlay-medium: rgba(255, 240, 225, 0.07);
+    --overlay-strong: rgba(255, 240, 225, 0.14);
+    --text: #ece7e0;
+    --text-secondary: #a89e91;
+    --text-tertiary: #756b5e;
     --emerald: #34d399;
     --emerald-strong: #10b981;
     --emerald-soft: rgba(52, 211, 153, 0.12);
@@ -25,14 +34,99 @@
     --danger: #f87171;
     --danger-soft: rgba(248, 113, 113, 0.12);
     --accent-prs: #60a5fa;
+    --accent-prs-strong: #3b82f6;
     --accent-prs-soft: rgba(96, 165, 250, 0.12);
     --accent-prs-glow: rgba(96, 165, 250, 0.28);
+    --accent-events: #fbbf24;
+    --accent-events-strong: #f59e0b;
+    --accent-events-soft: rgba(251, 191, 36, 0.12);
+    --accent-events-glow: rgba(251, 191, 36, 0.28);
+    --accent-standup: #a78bfa;
+    --accent-standup-strong: #8b5cf6;
+    --accent-standup-soft: rgba(167, 139, 250, 0.12);
+    --accent-standup-glow: rgba(167, 139, 250, 0.28);
+    --accent-live: #22d3ee;
+    --accent-live-strong: #06b6d4;
+    --accent-live-soft: rgba(34, 211, 238, 0.12);
+    --accent-live-glow: rgba(34, 211, 238, 0.28);
     --font: "JetBrains Mono", ui-monospace, "Cascadia Code", "Consolas", monospace;
     --radius-sm: 8px;
     --radius: 12px;
     --radius-lg: 18px;
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
     --shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    --shadow-hover: 0 10px 28px rgba(0, 0, 0, 0.28);
+
+    /* Page-scoped "current accent" — [data-page] is stamped on <html> by the inline
+       script in App.razor (first paint) and re-applied by MainLayout after every
+       client-side navigation, so components mounted outside the page body (the
+       sidebar logo, the reconnect modal) can still track which tab is active. */
+    --accent-current: var(--emerald);
+    --accent-current-strong: var(--emerald-strong);
+    --accent-current-soft: var(--emerald-soft);
+    --accent-current-glow: var(--emerald-glow);
+    --accent-current-ink: #04140e;
+}
+
+:root[data-page="prs"] {
+    --accent-current: var(--accent-prs);
+    --accent-current-strong: var(--accent-prs-strong);
+    --accent-current-soft: var(--accent-prs-soft);
+    --accent-current-glow: var(--accent-prs-glow);
+    --accent-current-ink: #eef2ff;
+}
+
+:root[data-page="events"] {
+    --accent-current: var(--accent-events);
+    --accent-current-strong: var(--accent-events-strong);
+    --accent-current-soft: var(--accent-events-soft);
+    --accent-current-glow: var(--accent-events-glow);
+    --accent-current-ink: #2b1a02;
+}
+
+:root[data-page="standup"] {
+    --accent-current: var(--accent-standup);
+    --accent-current-strong: var(--accent-standup-strong);
+    --accent-current-soft: var(--accent-standup-soft);
+    --accent-current-glow: var(--accent-standup-glow);
+    --accent-current-ink: #f5f0ff;
+}
+
+:root[data-page="live"] {
+    --accent-current: var(--accent-live);
+    --accent-current-strong: var(--accent-live-strong);
+    --accent-current-soft: var(--accent-live-soft);
+    --accent-current-glow: var(--accent-live-glow);
+    --accent-current-ink: #04272c;
+}
+
+/* Light theme overrides only the neutral scale + shadows — the emerald/blue/amber accent
+   hues stay identical across themes so status colors and the brand mark read consistently
+   either way. Applied via [data-theme] rather than prefers-color-scheme because the toggle
+   is a manual, remembered user choice, not a system-following default (see App.razor). */
+:root[data-theme="light"] {
+    --bg: #f6f5f1;
+    --bg-gradient:
+        radial-gradient(1200px 600px at 18% -12%, rgba(52, 211, 153, 0.09), transparent 60%),
+        radial-gradient(900px 520px at 104% 0%, rgba(96, 165, 250, 0.08), transparent 55%),
+        var(--bg);
+    --sidebar-bg: #fdfcfa;
+    --sidebar-gradient: linear-gradient(180deg, #ffffff 0%, #fdfcfa 100%);
+    --surface: #ffffff;
+    --surface-hover: #f4f3ee;
+    --surface-elevated: #ffffff;
+    --surface-sheen: linear-gradient(150deg, rgba(28, 27, 25, 0.02), transparent 45%);
+    --border: rgba(28, 27, 25, 0.1);
+    --border-strong: rgba(28, 27, 25, 0.18);
+    --overlay-weak: rgba(28, 27, 25, 0.04);
+    --overlay-medium: rgba(28, 27, 25, 0.06);
+    --overlay-strong: rgba(28, 27, 25, 0.1);
+    --text: #1c1b19;
+    --text-secondary: #6b655d;
+    --text-tertiary: #948d82;
+    --shadow-sm: 0 1px 2px rgba(28, 27, 25, 0.07);
+    --shadow: 0 8px 24px rgba(28, 27, 25, 0.1);
+    --shadow-hover: 0 10px 28px rgba(28, 27, 25, 0.12);
 }
 
 * {
@@ -40,13 +134,14 @@
 }
 
 html, body {
-    background: var(--bg);
+    background: var(--bg-gradient);
     color: var(--text);
     font-family: var(--font);
     margin: 0;
     min-height: 100vh;
     font-size: 14px;
     -webkit-font-smoothing: antialiased;
+    transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 h1:focus {
@@ -97,7 +192,7 @@ a:hover {
     }
 
 code {
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--overlay-medium);
     padding: 0.15rem 0.4rem;
     border-radius: 4px;
     font-size: 0.85em;
@@ -114,7 +209,7 @@ code {
 .sidebar {
     width: 232px;
     flex-shrink: 0;
-    background: var(--sidebar-bg);
+    background: var(--sidebar-gradient);
     border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
@@ -122,6 +217,7 @@ code {
     position: sticky;
     top: 0;
     height: 100vh;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
 .sidebar-brand {
@@ -133,19 +229,17 @@ code {
 }
 
 .brand-mark {
-    width: 26px;
-    height: 26px;
-    border-radius: 8px;
+    width: 28px;
+    height: 28px;
     flex-shrink: 0;
     display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 800;
-    font-size: 0.8rem;
-    color: #04140e;
-    background: linear-gradient(135deg, var(--emerald) 0%, var(--emerald-strong) 100%);
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08) inset, 0 4px 14px var(--emerald-glow);
+    filter: drop-shadow(0 4px 10px var(--emerald-glow));
 }
+
+    .brand-mark svg {
+        width: 100%;
+        height: 100%;
+    }
 
 .brand-name {
     font-weight: 700;
@@ -201,11 +295,26 @@ code {
         color: var(--accent-prs);
     }
 
+    .nav-item-events.active {
+        background: var(--accent-events-soft);
+        color: var(--accent-events);
+    }
+
+    .nav-item-standup.active {
+        background: var(--accent-standup-soft);
+        color: var(--accent-standup);
+    }
+
+    .nav-item-live.active {
+        background: var(--accent-live-soft);
+        color: var(--accent-live);
+    }
+
 .nav-badge {
     margin-left: auto;
     font-size: 0.68rem;
     font-weight: 700;
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--overlay-medium);
     color: var(--text-secondary);
     padding: 0.05rem 0.4rem;
     border-radius: 999px;
@@ -213,9 +322,10 @@ code {
 }
 
 .nav-item.active .nav-badge {
-    background: rgba(255, 255, 255, 0.14);
+    background: var(--overlay-strong);
     color: inherit;
 }
+
 
 .sidebar-footer {
     display: flex;
@@ -239,6 +349,45 @@ code {
     flex-shrink: 0;
 }
 
+.theme-toggle {
+    margin-left: auto;
+    width: 26px;
+    height: 26px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+    .theme-toggle:hover {
+        color: var(--text);
+        border-color: var(--border-strong);
+        background: var(--surface-hover);
+    }
+
+    .theme-toggle svg {
+        width: 14px;
+        height: 14px;
+    }
+
+    .theme-toggle .theme-icon-moon {
+        display: none;
+    }
+
+:root[data-theme="light"] .theme-toggle .theme-icon-sun {
+    display: none;
+}
+
+:root[data-theme="light"] .theme-toggle .theme-icon-moon {
+    display: inline-flex;
+}
+
 /* content */
 .content {
     flex: 1;
@@ -246,7 +395,7 @@ code {
 }
 
 .page {
-    max-width: 860px;
+    max-width: 1080px;
     margin: 0 auto;
     padding: 3rem 2.5rem 4rem;
     animation: page-fade-in 0.15s ease;
@@ -274,6 +423,18 @@ code {
 
 .page-prs .page-header {
     border-bottom-color: var(--accent-prs-soft);
+}
+
+.page-events .page-header {
+    border-bottom-color: var(--accent-events-soft);
+}
+
+.page-standup .page-header {
+    border-bottom-color: var(--accent-standup-soft);
+}
+
+.page-live .page-header {
+    border-bottom-color: var(--accent-live-soft);
 }
 
 .page-heading {
@@ -305,6 +466,21 @@ code {
 .page-icon-prs {
     background: var(--accent-prs-soft);
     color: var(--accent-prs);
+}
+
+.page-icon-events {
+    background: var(--accent-events-soft);
+    color: var(--accent-events);
+}
+
+.page-icon-standup {
+    background: var(--accent-standup-soft);
+    color: var(--accent-standup);
+}
+
+.page-icon-live {
+    background: var(--accent-live-soft);
+    color: var(--accent-live);
 }
 
     .page-header h1 {
@@ -344,7 +520,7 @@ code {
     }
 
 .btn-primary {
-    background: var(--emerald-strong);
+    background: linear-gradient(135deg, var(--emerald) 0%, var(--emerald-strong) 100%);
     color: #04140e;
     border: 1px solid var(--emerald-strong);
     padding: 0.55rem 1rem;
@@ -353,10 +529,19 @@ code {
 }
 
     .btn-primary:hover {
-        background: var(--emerald);
-        border-color: var(--emerald);
+        filter: brightness(1.08);
         transform: translateY(-1px);
         box-shadow: 0 6px 16px var(--emerald-glow);
+    }
+
+.page-events .btn-primary {
+    background: linear-gradient(135deg, var(--accent-events) 0%, var(--accent-events-strong) 100%);
+    color: #2b1a02;
+    border-color: var(--accent-events-strong);
+}
+
+    .page-events .btn-primary:hover {
+        box-shadow: 0 6px 16px var(--accent-events-glow);
     }
 
 .btn-ghost {
@@ -393,12 +578,20 @@ code {
         border-color: rgba(248, 113, 113, 0.25);
     }
 
+/* copy is non-destructive — keep it on-brand for the standup page instead of the
+   shared btn-icon delete-red hover. */
+.btn-icon-standup:hover {
+    color: var(--accent-standup);
+    background: var(--accent-standup-soft);
+    border-color: rgba(167, 139, 250, 0.25);
+}
+
 /* add form */
 .add-form {
     display: flex;
     gap: 0.5rem;
     margin-bottom: 1.5rem;
-    background: var(--surface);
+    background: var(--surface-sheen), var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 0.85rem;
@@ -450,13 +643,22 @@ code {
     display: flex;
     align-items: center;
     gap: 0.85rem;
-    background: var(--surface);
+    background: var(--surface-sheen), var(--surface);
     border: 1px solid var(--border);
     border-left: 3px solid var(--emerald-strong);
     border-radius: var(--radius);
     padding: 0.75rem 1rem;
     box-shadow: var(--shadow-sm);
-    transition: border-color 0.12s ease, background 0.12s ease, transform 0.12s ease;
+    /* transform deliberately excluded — this row is an ancestor of .status-pill, whose
+       open-state backdrop is position:fixed; giving *this* element a transform on hover
+       would make it a containing block for that backdrop too (see .status-pill comment
+       below), bringing back the flicker/z-index bug that was fixed for the pill itself. */
+    transition: border-color 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
+}
+
+.task-row {
+    /* the whole row is a drag target, not just the handle icon — see Tasks.razor.js */
+    cursor: grab;
 }
 
 .pr-row {
@@ -464,13 +666,26 @@ code {
 }
 
     .task-row:hover, .pr-row:hover {
-        background: var(--surface-hover);
+        background: var(--surface-sheen), var(--surface-hover);
         border-color: var(--border-strong);
+        box-shadow: var(--shadow-hover);
     }
 
     .task-row:hover {
         border-left-color: var(--emerald-strong);
     }
+
+    /* The dragged row itself follows the pointer (see Tasks.razor.js) — no native drag
+       ghost image is involved, so it stays fully opaque and just lifts above its siblings. */
+    .task-row-dragging {
+        box-shadow: 0 14px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--border-strong);
+        cursor: grabbing;
+    }
+
+body.task-dragging-active {
+    cursor: grabbing;
+    user-select: none;
+}
 
     .pr-row:hover {
         border-left-color: var(--accent-prs);
@@ -482,6 +697,7 @@ code {
     flex-shrink: 0;
     display: flex;
     align-items: center;
+    touch-action: none;
 }
 
     .drag-handle svg {
@@ -507,10 +723,43 @@ code {
 .task-title, .pr-title {
     flex: 1;
     min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
     font-weight: 500;
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* .task-title became a real <a> (links to the task detail page) — override the global
+   a { color: var(--emerald) } default so the title reads as normal text, not a link. */
+a.task-title {
+    color: var(--text);
+}
+
+    a.task-title:hover {
+        text-decoration: underline;
+    }
+
+/* pipeline stage — quiet by default (an agent's own bookkeeping, not something you need
+   to act on), loud only when it's asking for you specifically. */
+.stage-chip {
+    flex-shrink: 0;
+    font-size: 0.72rem;
+    text-transform: lowercase;
+    color: var(--text-secondary);
+    background: var(--overlay-weak);
+    border: 1px solid var(--border);
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.stage-chip-blocked {
+    color: #ca837e;
+    background-color: rgba(248, 113, 113, 0.1);
+    border-color: rgba(248, 113, 113, 0.3);
+    font-weight: 700;
 }
 
 .pr-count {
@@ -518,7 +767,7 @@ code {
     font-size: 0.72rem;
     text-transform: lowercase;
     flex-shrink: 0;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--overlay-weak);
     padding: 0.2rem 0.55rem;
     border-radius: 999px;
 }
@@ -573,6 +822,99 @@ a.pr-count {
     box-shadow: 0 0 0 3px var(--accent-prs-soft);
 }
 
+/* Custom popover trigger for StatusFilterDropdown — same reasoning as .status-pill: a real
+   <select>'s open-state option list is OS-rendered chrome (e.g. the selected-row highlight
+   color on Windows/Chrome) that CSS cannot restyle, so filters needing themed dropdowns use
+   this + the existing .status-menu popover instead of <select><option>. */
+.filter-dropdown {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text);
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0.45rem 0.7rem;
+    cursor: pointer;
+    user-select: none;
+    flex-shrink: 0;
+    transition: border-color 0.12s ease, background-color 0.12s ease;
+}
+
+    .filter-dropdown:hover {
+        border-color: var(--border-strong);
+        background-color: var(--surface-hover);
+    }
+
+.filter-dropdown-label {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.filter-dropdown-menu {
+    max-width: 340px;
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.filter-dropdown-chevron {
+    width: 11px;
+    height: 11px;
+    flex-shrink: 0;
+    color: var(--text-tertiary);
+}
+
+.search-input {
+    font-family: var(--font);
+    font-size: 0.8rem;
+    color: var(--text);
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0.45rem 0.7rem 0.45rem 2rem;
+    flex: 1 1 220px;
+    max-width: 280px;
+    /* input[type=search] gets OS-native chrome (its own rounding/border, sized cancel
+       button, etc.) in WebKit/Blink unless appearance is explicitly reset — without this
+       the custom border/background/icon above render inconsistently or not at all. */
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a39d95' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: 0.65rem center;
+    background-size: 13px;
+}
+
+    .search-input::placeholder {
+        color: var(--text-tertiary);
+    }
+
+    .search-input:focus {
+        outline: none;
+        border-color: var(--emerald-strong);
+        box-shadow: 0 0 0 3px var(--emerald-soft);
+    }
+
+    .search-input::-webkit-search-cancel-button {
+        cursor: pointer;
+    }
+
+.page-prs .search-input:focus {
+    border-color: var(--accent-prs);
+    box-shadow: 0 0 0 3px var(--accent-prs-soft);
+}
+
+.page-events .search-input:focus {
+    border-color: var(--accent-events);
+    box-shadow: 0 0 0 3px var(--accent-events-soft);
+}
+
 .filter-chip {
     display: inline-flex;
     align-items: center;
@@ -595,6 +937,226 @@ a.pr-count {
     border-radius: 999px;
 }
 
+/* events */
+.event-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.event-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+.event-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    background: var(--surface-sheen), var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent-events);
+    border-radius: var(--radius);
+    padding: 0.75rem 1rem;
+    box-shadow: var(--shadow-sm);
+    transition: border-color 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
+}
+
+    .event-row:hover {
+        background: var(--surface-sheen), var(--surface-hover);
+        border-color: var(--border-strong);
+        box-shadow: var(--shadow-hover);
+    }
+
+    .event-row-read {
+        opacity: 0.55;
+        border-left-color: var(--border-strong);
+    }
+
+.event-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    padding: 0.32rem 0.7rem 0.32rem 0.65rem;
+    flex-shrink: 0;
+    font-size: 0.76rem;
+    font-weight: 700;
+    text-transform: lowercase;
+    white-space: nowrap;
+    margin-top: 0.05rem;
+}
+
+.event-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.event-summary {
+    font-weight: 500;
+    line-height: 1.35;
+}
+
+.event-context {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.event-context-chip {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    background: var(--overlay-weak);
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+}
+
+    .event-context-chip b {
+        color: var(--text-tertiary);
+        font-weight: 600;
+    }
+
+.event-time {
+    color: var(--text-tertiary);
+    font-size: 0.72rem;
+    flex-shrink: 0;
+    white-space: nowrap;
+    margin-top: 0.35rem;
+}
+
+.event-ack {
+    margin-top: 0.05rem;
+}
+
+    .event-ack:hover {
+        color: var(--emerald);
+        background: var(--emerald-soft);
+        border-color: rgba(52, 211, 153, 0.25);
+    }
+
+.event-taskcreated, .event-prcreated {
+    color: var(--emerald);
+    background-color: var(--emerald-soft);
+    border-color: rgba(52, 211, 153, 0.35);
+}
+
+.event-taskupdated, .event-prupdated {
+    color: var(--accent-prs);
+    background-color: var(--accent-prs-soft);
+    border-color: rgba(96, 165, 250, 0.35);
+}
+
+.event-taskassigned, .event-taskreassigned {
+    color: #a78bfa;
+    background-color: rgba(167, 139, 250, 0.14);
+    border-color: rgba(167, 139, 250, 0.35);
+}
+
+.event-taskcommentadded, .event-prcommentadded {
+    color: var(--accent-events);
+    background-color: var(--accent-events-soft);
+    border-color: rgba(251, 191, 36, 0.35);
+}
+
+.event-prapproved {
+    color: var(--emerald);
+    background-color: var(--emerald-soft);
+    border-color: rgba(52, 211, 153, 0.35);
+}
+
+.event-taskstagechanged {
+    color: var(--accent-live);
+    background-color: var(--accent-live-soft);
+    border-color: rgba(34, 211, 238, 0.35);
+}
+
+/* standup — one big editable note per day, not a checklist */
+.standup-note {
+    margin-bottom: 1.5rem;
+    background: var(--surface-sheen), var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+    .standup-note:hover {
+        border-color: var(--border-strong);
+    }
+
+.standup-note-today {
+    border-color: var(--accent-standup-soft);
+}
+
+.standup-note-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.65rem 0.9rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.standup-note-date {
+    font-weight: 700;
+    font-size: 0.86rem;
+    text-transform: lowercase;
+    color: var(--text-secondary);
+}
+
+.standup-note-today .standup-note-date {
+    color: var(--accent-standup);
+}
+
+.standup-note-actions {
+    display: flex;
+    gap: 0.35rem;
+}
+
+    .standup-note-actions .btn-icon {
+        width: 30px;
+        height: 30px;
+    }
+
+        .standup-note-actions .btn-icon svg {
+            width: 15px;
+            height: 15px;
+        }
+
+.standup-textarea {
+    display: block;
+    width: 100%;
+    min-height: 160px;
+    resize: vertical;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 0.92rem;
+    line-height: 1.55;
+    padding: 0.9rem;
+}
+
+.standup-note-today .standup-textarea {
+    min-height: 220px;
+}
+
+    .standup-textarea:focus {
+        outline: none;
+    }
+
+    .standup-textarea::placeholder {
+        color: var(--text-tertiary);
+    }
+
+.standup-empty-hint {
+    margin: 0 0 0.75rem;
+}
+
 /* status pill: a custom Blazor popover, not a native select (see StatusDropdown.razor) —
    a real <select>'s open-state popup is OS-rendered chrome that can't be themed with CSS. */
 .status-pill {
@@ -608,12 +1170,16 @@ a.pr-count {
     flex-shrink: 0;
     cursor: pointer;
     user-select: none;
-    transition: border-color 0.12s ease, background-color 0.12s ease, transform 0.12s ease;
+    transition: border-color 0.12s ease, background-color 0.12s ease, box-shadow 0.12s ease;
 }
 
+    /* No transform/filter here on purpose: either one makes this element a CSS
+       "containing block" for its position:fixed backdrop child, so the backdrop
+       resizes to the pill instead of the viewport while hovered — causing the
+       open/close flicker and letting sibling rows paint over the dropdown. */
     .status-pill:hover {
-        transform: translateY(-1px);
-        filter: brightness(1.1);
+        border-color: var(--border-strong);
+        box-shadow: inset 0 0 0 999px var(--overlay-medium);
     }
 
 .status-pill-dot {
@@ -662,10 +1228,10 @@ a.pr-count {
     right: 0;
     z-index: 40;
     min-width: 200px;
-    background: var(--surface-elevated);
+    background: var(--surface-sheen), var(--surface-elevated);
     border: 1px solid var(--border-strong);
     border-radius: var(--radius);
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.06);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.06);
     padding: 0.35rem;
     animation: status-menu-in 0.12s ease;
 }
@@ -695,12 +1261,17 @@ a.pr-count {
     cursor: pointer;
 }
 
+    /* Safe to use filter here (unlike .status-pill:hover above) — .status-menu-item never
+       has a position:fixed descendant, so it can't become an accidental containing block. */
     .status-menu-item:hover {
         filter: brightness(1.25);
     }
 
 .status-menu-item-label {
     flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
 }
 
@@ -715,54 +1286,193 @@ a.pr-count {
     color: var(--text);
 }
 
+/* Softened per-status colors — same hues as before, blended toward the neutral text color
+   and at lower background/border opacity, so they read at a glance without shouting.
+   Applies to .status-pill (the per-row trigger, e.g. task-row's StatusDropdown) and
+   .status-menu-item (both StatusDropdown's and StatusFilterDropdown's menu rows) — the
+   filter dropdown is then explicitly neutralized back to text-only further down, since
+   that one's for sorting/filtering, not for setting a task's actual status. */
 .status-undefined {
     color: var(--text-tertiary);
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: var(--overlay-weak);
     border-style: dashed;
     border-color: var(--border-strong);
 }
 
 .status-new {
-    color: #38bdf8;
-    background-color: rgba(56, 189, 248, 0.14);
-    border-color: rgba(56, 189, 248, 0.35);
+    color: #6aa9c2;
+    background-color: rgba(56, 189, 248, 0.08);
+    border-color: rgba(56, 189, 248, 0.18);
 }
 
 .status-blocker {
-    color: #f87171;
-    background-color: rgba(248, 113, 113, 0.14);
-    border-color: rgba(248, 113, 113, 0.35);
+    color: #ca837e;
+    background-color: rgba(248, 113, 113, 0.08);
+    border-color: rgba(248, 113, 113, 0.18);
 }
 
 .status-prwaitingforreview, .status-waitingforreview {
-    color: #fbbf24;
-    background-color: rgba(251, 191, 36, 0.14);
-    border-color: rgba(251, 191, 36, 0.35);
+    color: #cbaa58;
+    background-color: rgba(251, 191, 36, 0.08);
+    border-color: rgba(251, 191, 36, 0.18);
 }
 
 .status-waitingforrelease {
-    color: #a78bfa;
-    background-color: rgba(167, 139, 250, 0.14);
-    border-color: rgba(167, 139, 250, 0.35);
+    color: #a190c3;
+    background-color: rgba(167, 139, 250, 0.08);
+    border-color: rgba(167, 139, 250, 0.18);
 }
 
-.status-resolved {
-    color: #2dd4bf;
-    background-color: rgba(45, 212, 191, 0.14);
-    border-color: rgba(45, 212, 191, 0.35);
+.status-resolved, .status-approved, .status-prapproved {
+    color: #64b5a5;
+    background-color: rgba(45, 212, 191, 0.08);
+    border-color: rgba(45, 212, 191, 0.18);
 }
 
-.status-done, .status-completed {
-    color: var(--emerald);
-    background-color: var(--emerald-soft);
-    border-color: rgba(52, 211, 153, 0.35);
+.status-prmerged {
+    color: #6b93c9;
+    background-color: rgba(96, 165, 250, 0.08);
+    border-color: rgba(96, 165, 250, 0.18);
+}
+
+.status-done, .status-completed, .status-released {
+    color: #68b492;
+    background-color: rgba(52, 211, 153, 0.08);
+    border-color: rgba(52, 211, 153, 0.18);
 }
 
 .status-needschanges {
-    color: #f87171;
-    background-color: rgba(248, 113, 113, 0.14);
-    border-color: rgba(248, 113, 113, 0.35);
+    color: #ca837e;
+    background-color: rgba(248, 113, 113, 0.08);
+    border-color: rgba(248, 113, 113, 0.18);
 }
+
+.status-removed {
+    color: var(--text-tertiary);
+    background-color: var(--overlay-weak);
+    border-color: var(--border);
+}
+
+/* "removed" keeps a strikethrough as its distinguishing mark on top of its (already
+   neutral) color above. Scoped to each element's *own* status class, not just
+   ".status-removed" as an ancestor selector — the menu is nested inside the trigger pill,
+   so when the pill itself is currently "removed", an ancestor-based selector would match
+   every item's label inside it, striking through the whole open list instead of just the
+   "removed" row. */
+.status-pill.status-removed .status-pill-label {
+    text-decoration: line-through;
+    opacity: 0.7;
+}
+
+.status-menu-item.status-removed .status-menu-item-label {
+    text-decoration: line-through;
+    opacity: 0.7;
+}
+
+/* work item type badge — small line-art icons echoing Azure Boards' type glyphs (see
+   WorkItemTypeDropdown.razor). Reuses .status-menu/.status-menu-item/.status-menu-backdrop
+   for the popover shell (generic popover mechanics, not status-specific despite the name)
+   and only defines its own trigger + per-type color rules. Sized a touch larger than the
+   PR-count/status-pill controls nearby — this is the smallest click target in a task row,
+   so it gets a bit more room rather than less. */
+.type-badge {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    border: 1px solid transparent;
+    flex-shrink: 0;
+    cursor: pointer;
+    user-select: none;
+    transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+    /* No transform/filter here either — same containing-block reason as .status-pill:hover. */
+    .type-badge:hover {
+        border-color: var(--border-strong);
+        box-shadow: inset 0 0 0 999px var(--overlay-medium);
+    }
+
+    .type-badge svg {
+        width: 16px;
+        height: 16px;
+    }
+
+/* Type is set once at task creation (see WorkItemTypeDropdown.razor) — the per-row badge
+   renders with ReadOnly="true", so it shouldn't look clickable. */
+.type-badge-readonly {
+    cursor: default;
+}
+
+    .type-badge-readonly:hover {
+        border-color: transparent;
+        box-shadow: none;
+    }
+
+.type-menu-item-icon {
+    display: inline-flex;
+    flex-shrink: 0;
+}
+
+    .type-menu-item-icon svg {
+        width: 15px;
+        height: 15px;
+    }
+
+.type-undefined {
+    color: var(--text-tertiary);
+    background-color: var(--overlay-weak);
+    border-style: dashed;
+    border-color: var(--border-strong);
+}
+
+.type-task {
+    color: #cbaa58;
+    background-color: rgba(234, 179, 8, 0.1);
+    border-color: rgba(234, 179, 8, 0.25);
+}
+
+.type-bug {
+    color: #e0918c;
+    background-color: rgba(248, 113, 113, 0.1);
+    border-color: rgba(248, 113, 113, 0.25);
+}
+
+.type-userstory {
+    color: #6aa9c2;
+    background-color: rgba(96, 165, 250, 0.1);
+    border-color: rgba(96, 165, 250, 0.25);
+}
+
+.type-feature {
+    color: #cd8ce0;
+    background-color: rgba(192, 132, 252, 0.1);
+    border-color: rgba(192, 132, 252, 0.25);
+}
+
+.type-epic {
+    color: #d99a5b;
+    background-color: rgba(249, 115, 22, 0.12);
+    border-color: rgba(249, 115, 22, 0.28);
+}
+
+/* The sorting/filtering dropdown (StatusFilterDropdown) is not about a task's actual
+   status, so it stays text-only — no color coding. Placed after the per-status rules
+   above so it wins their tied specificity via source order, without needing !important. */
+.filter-dropdown-menu .status-menu-item {
+    color: var(--text-secondary);
+    background-color: transparent;
+    border-color: transparent;
+}
+
+    .filter-dropdown-menu .status-menu-item:hover {
+        color: var(--text);
+        background-color: var(--overlay-medium);
+        filter: none;
+    }
 
 /* empty state */
 .empty-state {
@@ -783,7 +1493,7 @@ a.pr-count {
         width: 18px;
         height: 18px;
         color: var(--text-tertiary);
-        background: rgba(255, 255, 255, 0.05);
+        background: var(--overlay-weak);
         padding: 0.65rem;
         border-radius: 999px;
         box-sizing: content-box;
@@ -798,6 +1508,16 @@ a.pr-count {
 .page-prs .empty-state:not(.error-state) svg {
     background: var(--accent-prs-soft);
     color: var(--accent-prs);
+}
+
+.page-events .empty-state:not(.error-state) svg {
+    background: var(--accent-events-soft);
+    color: var(--accent-events);
+}
+
+.page-standup .empty-state:not(.error-state) svg {
+    background: var(--accent-standup-soft);
+    color: var(--accent-standup);
 }
 
 .error-state {
@@ -832,3 +1552,349 @@ a.pr-count {
     .blazor-error-boundary::after {
         content: "an error has occurred.";
     }
+
+/* task detail page */
+.page-task-detail {
+    max-width: 900px;
+}
+
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    margin-bottom: 1.25rem;
+}
+
+    .back-link:hover {
+        color: var(--text);
+    }
+
+.detail-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 2px solid var(--emerald-soft);
+}
+
+.detail-heading {
+    flex: 1;
+    min-width: 0;
+}
+
+    .detail-heading h1 {
+        font-size: 1.2rem;
+        font-weight: 700;
+        line-height: 1.4;
+        margin: 0 0 0.35rem;
+    }
+
+        .detail-heading h1 .task-number {
+            margin-right: 0.5rem;
+        }
+
+.stage-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: var(--surface-sheen), var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.65rem 0.9rem;
+    margin-bottom: 1.5rem;
+}
+
+.stage-banner-blocked {
+    border-color: rgba(248, 113, 113, 0.35);
+    background: rgba(248, 113, 113, 0.06);
+}
+
+.stage-banner-detail {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.detail-section {
+    margin-bottom: 2rem;
+}
+
+    .detail-section h2 {
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: lowercase;
+        letter-spacing: 0.03em;
+        color: var(--text-secondary);
+        margin: 0 0 0.75rem;
+    }
+
+.detail-pr-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.detail-pr-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: var(--surface-sheen), var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent-prs);
+    border-radius: var(--radius);
+    padding: 0.65rem 0.85rem;
+}
+
+.add-comment {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.add-comment-input {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    padding: 0.55rem 0.75rem;
+    font-family: var(--font);
+    font-size: 0.85rem;
+    transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+    .add-comment-input::placeholder {
+        color: var(--text-tertiary);
+    }
+
+    .add-comment-input:focus {
+        outline: none;
+        border-color: var(--emerald-strong);
+        box-shadow: 0 0 0 3px var(--emerald-soft);
+    }
+
+/* live page */
+.live-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+}
+
+    .live-section-header h2 {
+        margin: 0;
+    }
+
+.live-card-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.live-card {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    background: var(--surface-sheen), var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent-live);
+    border-radius: var(--radius);
+    padding: 0.75rem 1rem;
+    box-shadow: var(--shadow-sm);
+    transition: border-color 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
+}
+
+    .live-card:hover {
+        background: var(--surface-sheen), var(--surface-hover);
+        border-color: var(--border-strong);
+        box-shadow: var(--shadow-hover);
+        text-decoration: none;
+    }
+
+.live-card-blocked {
+    border-left-color: var(--danger);
+}
+
+.live-card-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.live-card-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text);
+}
+
+.live-card-detail {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+}
+
+.live-card-time {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+}
+
+/* A page that only ever showed static rows didn't read as "live" at a glance — these
+   three touches (a pulsing recording-style dot, a breathing glow on active cards, a
+   connecting timeline instead of boxed rows) are what set this page apart from the other
+   four, which are all plain lists. */
+.page-live .page-header h1 {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+}
+
+.live-pulse-dot {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--accent-live);
+    box-shadow: 0 0 0 0 var(--accent-live-glow);
+    animation: live-pulse 2s ease-out infinite;
+}
+
+@keyframes live-pulse {
+    0% {
+        box-shadow: 0 0 0 0 var(--accent-live-glow);
+    }
+
+    70% {
+        box-shadow: 0 0 0 9px rgba(34, 211, 238, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(34, 211, 238, 0);
+    }
+}
+
+.live-stats {
+    display: flex;
+    gap: 0.85rem;
+    margin-bottom: 1.75rem;
+}
+
+.live-stat {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    background: var(--surface-sheen), var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.9rem 1.1rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.live-stat-value {
+    font-size: 1.9rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    color: var(--accent-live);
+}
+
+.live-stat-label {
+    font-size: 0.76rem;
+    color: var(--text-secondary);
+    text-transform: lowercase;
+}
+
+.live-stat-alert .live-stat-value {
+    color: var(--danger);
+}
+
+.live-card-active {
+    animation: live-card-glow 3s ease-in-out infinite;
+}
+
+@keyframes live-card-glow {
+    0%, 100% {
+        box-shadow: var(--shadow-sm), 0 0 0 0 var(--accent-live-glow);
+    }
+
+    50% {
+        box-shadow: var(--shadow-sm), 0 0 14px 1px var(--accent-live-glow);
+    }
+}
+
+.live-timeline {
+    position: relative;
+    padding-left: 1.6rem;
+}
+
+.live-timeline-item {
+    position: relative;
+    padding-bottom: 1.15rem;
+}
+
+    .live-timeline-item:not(:last-child)::before {
+        content: "";
+        position: absolute;
+        left: -1.14rem;
+        top: 0.85rem;
+        bottom: -0.3rem;
+        width: 1px;
+        background: var(--border-strong);
+    }
+
+/* Dot color rides on the existing per-event-type classes (.event-taskcreated etc.) —
+   those set both color and background-color, but this rule's `background: currentColor`
+   is declared after them in the file, so at equal specificity it wins the cascade for
+   background-color while `color` still comes from whichever .event-* class is applied,
+   giving a solid dot in that type's color rather than its soft background tint. */
+.live-timeline-dot {
+    position: absolute;
+    left: -1.6rem;
+    top: 0.2rem;
+    display: block;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 0 3px var(--bg);
+}
+
+.live-timeline-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.live-timeline-header {
+    display: flex;
+    align-items: baseline;
+    gap: 0.55rem;
+}
+
+.live-timeline-type {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: lowercase;
+    color: var(--text-tertiary);
+}
+
+.live-timeline-time {
+    font-size: 0.72rem;
+    color: var(--text-tertiary);
+}
+
+.live-timeline-summary {
+    font-size: 0.88rem;
+    color: var(--text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .live-pulse-dot, .live-card-active {
+        animation: none;
+    }
+}

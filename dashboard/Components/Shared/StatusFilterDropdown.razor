@@ -1,0 +1,67 @@
+@* Same custom popover as StatusDropdown — not a native <select> — plus a nullable "all"
+   option for filtering. A native select's open-state popup (option hover/selection color)
+   is OS-rendered chrome on Windows/Chrome that CSS cannot restyle at all, which is exactly
+   why StatusDropdown exists instead of a <select> for the per-row pills; filters need the
+   same treatment. *@
+@typeparam TStatus where TStatus : struct, Enum
+
+<div class="filter-dropdown" @onclick="Toggle">
+    <span class="filter-dropdown-label">@Label(Value)</span>
+    <svg class="filter-dropdown-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="6 9 12 15 18 9" />
+    </svg>
+
+    @if (open)
+    {
+        <div class="status-menu-backdrop" @onclick="Close" @onclick:stopPropagation="true"></div>
+        <div class="status-menu filter-dropdown-menu" @onclick:stopPropagation="true">
+            <div class="status-menu-item" @onclick="() => Select(null)">
+                <span class="status-menu-item-label">@AllLabel</span>
+                @if (Value is null)
+                {
+                    <svg class="status-menu-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                }
+            </div>
+            @foreach (var s in Options ?? Enum.GetValues<TStatus>())
+            {
+                <div class="status-menu-item status-@s.ToString().ToLowerInvariant()" @onclick="() => Select(s)">
+                    <span class="status-menu-item-label">@Label(s)</span>
+                    @if (Value.HasValue && EqualityComparer<TStatus>.Default.Equals(s, Value.Value))
+                    {
+                        <svg class="status-menu-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public TStatus? Value { get; set; }
+    [Parameter] public EventCallback<TStatus?> ValueChanged { get; set; }
+    [Parameter] public Func<TStatus, string>? Format { get; set; }
+    [Parameter] public string AllLabel { get; set; } = "all";
+    [Parameter] public IEnumerable<TStatus>? Options { get; set; }
+
+    private bool open;
+
+    private string Label(TStatus? s) => s is null ? AllLabel : (Format?.Invoke(s.Value) ?? s.Value.ToString());
+
+    private void Toggle() => open = !open;
+
+    private void Close() => open = false;
+
+    private async Task Select(TStatus? s)
+    {
+        open = false;
+        if (!EqualityComparer<TStatus?>.Default.Equals(s, Value))
+        {
+            Value = s;
+            await ValueChanged.InvokeAsync(s);
+        }
+    }
+}

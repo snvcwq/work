@@ -1,0 +1,184 @@
+@page "/events"
+@rendermode InteractiveServer
+@implements IDisposable
+@inject dashboard.Data.MongoContext Db
+@using dashboard.Models
+@using MongoDB.Driver
+
+<PageTitle>dashboard</PageTitle>
+
+<div class="page page-events">
+    <div class="page-header">
+        <div class="page-heading">
+            <span class="page-icon page-icon-events">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 8v4l3 3" />
+                    <circle cx="12" cy="12" r="9" />
+                </svg>
+            </span>
+            <div>
+                <h1>events</h1>
+                <p class="page-subtitle">@(unacknowledgedCount) unread &middot; @(events?.Count ?? 0) total</p>
+            </div>
+        </div>
+        <div class="event-actions">
+            <button class="btn-ghost" @onclick="ToggleUnreadOnly">@(unreadOnly ? "show all" : "show unread only")</button>
+            @if (unacknowledgedCount > 0)
+            {
+                <button class="btn-primary" @onclick="AckAll">mark all read</button>
+            }
+        </div>
+    </div>
+
+    @if (events is not null && events.Count > 0)
+    {
+        <div class="filter-bar">
+            <input class="search-input" type="search" placeholder="search description…" @bind="searchText" @bind:event="oninput" />
+            @if (!string.IsNullOrWhiteSpace(searchText))
+            {
+                <button class="btn-ghost" @onclick="() => searchText = string.Empty">clear</button>
+            }
+        </div>
+    }
+
+    @if (connectionError)
+    {
+        <div class="empty-state error-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 9v4" /><path d="M12 17h.01" />
+                <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+            </svg>
+            <span>can't reach mongodb — is docker running? try <code>docker compose up -d</code> in dashboard/</span>
+        </div>
+    }
+    else if (events is null)
+    {
+        <p class="muted">loading…</p>
+    }
+    else if (VisibleEvents.Count == 0)
+    {
+        <div class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 8v4l3 3" /><circle cx="12" cy="12" r="9" />
+            </svg>
+            <span>@(!string.IsNullOrWhiteSpace(searchText) ? "no events match this search." : unreadOnly ? "nothing unread." : "no events yet — task and pr changes will show up here.")</span>
+        </div>
+    }
+    else
+    {
+        <div class="event-list">
+            @foreach (var evt in VisibleEvents)
+            {
+                <div class="event-row @(evt.Acknowledged ? "event-row-read" : "")" @key="evt.Id">
+                    <span class="event-badge event-@(evt.Type.ToString().ToLowerInvariant())">
+                        <span class="status-pill-dot"></span>
+                        @FormatEventType(evt.Type)
+                    </span>
+                    <div class="event-body">
+                        <span class="event-summary">@evt.Summary</span>
+                        @if (evt.Context.Count > 0)
+                        {
+                            <div class="event-context">
+                                @foreach (var kv in evt.Context)
+                                {
+                                    <span class="event-context-chip"><b>@kv.Key:</b> @Truncate(kv.Value)</span>
+                                }
+                            </div>
+                        }
+                    </div>
+                    <span class="event-time" title="@evt.CreatedAt.ToLocalTime().ToString("f")">@RelativeTime(evt.CreatedAt)</span>
+                    @if (!evt.Acknowledged)
+                    {
+                        <button class="btn-icon event-ack" title="mark read" @onclick="() => Ack(evt.Id)">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                        </button>
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<DashboardEvent>? events;
+    private bool unreadOnly;
+    private bool connectionError;
+    private Timer? refreshTimer;
+    private string searchText = "";
+
+    private int unacknowledgedCount => events?.Count(e => !e.Acknowledged) ?? 0;
+
+    private List<DashboardEvent> VisibleEvents =>
+        (events ?? new())
+            .Where(e => !unreadOnly || !e.Acknowledged)
+            .Where(e => string.IsNullOrWhiteSpace(searchText) || e.Summary.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Load();
+        refreshTimer = new Timer(async _ => await InvokeAsync(async () =>
+        {
+            await Load();
+            StateHasChanged();
+        }), null, 4000, 4000);
+    }
+
+    private async Task Load()
+    {
+        try
+        {
+            events = await Db.GetNotableEventsAsync();
+            connectionError = false;
+        }
+        catch (MongoException)
+        {
+            connectionError = true;
+        }
+    }
+
+    private void ToggleUnreadOnly() => unreadOnly = !unreadOnly;
+
+    private async Task Ack(string id)
+    {
+        await Db.AcknowledgeEventAsync(id);
+        await Load();
+    }
+
+    private async Task AckAll()
+    {
+        await Db.AcknowledgeAllEventsAsync();
+        await Load();
+    }
+
+    private static string FormatEventType(EventType t) => t switch
+    {
+        EventType.TaskCreated => "task created",
+        EventType.TaskUpdated => "task updated",
+        EventType.TaskAssigned => "task assigned",
+        EventType.TaskReassigned => "task reassigned",
+        EventType.TaskCommentAdded => "task comment",
+        EventType.PrCreated => "pr created",
+        EventType.PrUpdated => "pr updated",
+        EventType.PrCommentAdded => "pr comment",
+        EventType.PrApproved => "pr approved",
+        _ => t.ToString()
+    };
+
+    private static string Truncate(string s, int max = 120) =>
+        s.Length <= max ? s : s[..max] + "…";
+
+    private static string RelativeTime(DateTime utc)
+    {
+        var span = DateTime.UtcNow - utc;
+        if (span.TotalSeconds < 60) return "just now";
+        if (span.TotalMinutes < 60) return $"{(int)span.TotalMinutes}m ago";
+        if (span.TotalHours < 24) return $"{(int)span.TotalHours}h ago";
+        if (span.TotalDays < 7) return $"{(int)span.TotalDays}d ago";
+        return utc.ToLocalTime().ToString("MMM d");
+    }
+
+    public void Dispose() => refreshTimer?.Dispose();
+}
