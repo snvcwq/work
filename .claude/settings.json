@@ -7,7 +7,13 @@
       "Bash(dotnet ef:*)",
       "Bash(git status)",
       "Bash(git diff:*)",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Bash(curl * localhost:7404*)",
+      "Bash(curl *http://localhost:7404*)",
+      "Bash(taskkill //F //IM dashboard.exe*)",
+      "Bash(tasklist //FI \"IMAGENAME eq dashboard.exe\"*)",
+      "Bash(\"/c/Users/dorin/.dotnet/dotnet.exe\" run*)",
+      "PowerShell(& \"$env:USERPROFILE\\.dotnet\\dotnet.exe\" build \"C:\\Users\\dorin\\daily-driver\\dashboard\\dashboard.csproj\"*)"
     ]
   }
 }
