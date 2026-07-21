@@ -22,6 +22,14 @@ public class DashboardEvent
     public string Summary { get; set; } = "";
     public Dictionary<string, string> Context { get; set; } = new();
 
+    // False for everything this app logs automatically on its own actions (task/PR create,
+    // status/stage/assignee changes, comments) — those already show up on /live and on each
+    // task's own detail page, so they don't need to double as an "events" notification too.
+    // True only for events reported through POST /api/events — things noticed outside this
+    // app's own scope (e.g. a Gmail-polling agent spotting a reassignment or PR approval).
+    // The /events tab surfaces External events only; see GetNotableEventsAsync.
+    public bool IsExternal { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public bool Acknowledged { get; set; }
 }

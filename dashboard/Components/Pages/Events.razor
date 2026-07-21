@@ -61,7 +61,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M12 8v4l3 3" /><circle cx="12" cy="12" r="9" />
             </svg>
-            <span>@(!string.IsNullOrWhiteSpace(searchText) ? "no events match this search." : unreadOnly ? "nothing unread." : "no events yet — task and pr changes will show up here.")</span>
+            <span>@(!string.IsNullOrWhiteSpace(searchText) ? "no events match this search." : unreadOnly ? "nothing unread." : "no events yet — things noticed outside this app (e.g. via Gmail) will show up here.")</span>
         </div>
     }
     else

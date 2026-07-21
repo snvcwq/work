@@ -51,11 +51,11 @@ Each task has a detail page at `/tasks/{id}` (linked from its title in the list)
 - `DELETE /api/prs/{id}`
 
 ### Events
-- `GET /api/events?unacknowledged={bool}` — the full, unfiltered log (every event type, including `TaskStageChanged`) — this is for your own querying/debugging.
-- `POST /api/events` — `{ type, summary?, taskId?, taskNumber?, prId?, prNumber?, context? }` — for things you observed **outside your own actions** that the automatic logging above can't detect (e.g. a reassignment you noticed while polling Azure DevOps).
+- `GET /api/events?unacknowledged={bool}` — the full, unfiltered log (every event, internal and external) — this is for your own querying/debugging.
+- `POST /api/events` — `{ type, summary?, taskId?, taskNumber?, prId?, prNumber?, context? }` — for things you observed **outside your own actions** that the automatic logging above can't detect (e.g. a reassignment or PR approval noticed while polling Gmail/Azure DevOps). This is the only path that marks an event `IsExternal = true`.
 - `PUT /api/events/{id}/ack`, `PUT /api/events/ack-all`
 
-The `/events` **tab** (and its unread badge) is narrower than the raw API — it excludes `TaskStageChanged` on purpose, so routine stage bookkeeping doesn't drown out things actually worth a human noticing (a PR approved, a comment left, a reassignment). That routine activity is still fully visible on `/live` and on each task's own detail page. If you ever add a new event type that's pure internal bookkeeping, add it to `ActivityOnlyTypes` in `MongoContext.cs` so it's excluded from `/events` the same way — don't expect new "an agent did a routine thing" event types to show up there automatically.
+The `/events` **tab** (and its unread badge) only shows `IsExternal` events — i.e. only what came in through `POST /api/events`, typically a Gmail-polling agent reporting something it saw outside this app's scope. Every action this app logs automatically on itself (task/PR created, status/stage/assignee changed, comments) is **not** external, so it never appears there, no matter how often tasks are created or updated — that routine activity still has a full history, just not in `/events`: it's on `/live` and on each task's own detail page (`GetEventsForTaskAsync`, which is unfiltered). Don't call `POST /api/events` for your own routine task bookkeeping — use the dedicated task/PR endpoints above, which log internally and correctly stay out of `/events`.
 
 ### Standup
 Standups happen Tuesday/Thursday. `/standup` is one big free-text note **per day** (not a task list) — the user reads back through it to know what to report.

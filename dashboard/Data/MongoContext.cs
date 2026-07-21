@@ -30,6 +30,7 @@ public class MongoContext
         await Events.InsertOneAsync(new DashboardEvent
         {
             Type = type,
+            IsExternal = false,
             TaskId = task?.Id,
             TaskNumber = task?.Number,
             PrId = pr?.Id,
@@ -243,28 +244,26 @@ public class MongoContext
             .SortByDescending(e => e.CreatedAt)
             .ToListAsync();
 
-    // Event types that are an agent's own routine bookkeeping rather than something worth
-    // a human being notified about — still logged (a task's own detail-page timeline shows
-    // everything, and so does the live page's activity feed via GetEventsAsync above), just
-    // excluded from the notification-oriented views below. Extend this list rather than
-    // adding new "internal" event types to GetEventsAsync's callers piecemeal.
-    private static readonly EventType[] ActivityOnlyTypes = [EventType.TaskStageChanged];
-
-    // What the events tab (and its unread badge) actually surfaces — the events system was
-    // built to flag things you should know happened, especially ones external to your own
-    // agents' work, not to mirror every internal step an agent takes.
+    // What the events tab (and its unread badge) actually surfaces — External events only.
+    // Every internal action this app logs for itself (task/PR create, status/stage/assignee
+    // changes, comments) already has a home on /live and on the task's own detail page via
+    // GetEventsForTaskAsync; it doesn't also need to show up as an "events" notification.
+    // The events tab is specifically for things noticed outside this app's own scope (e.g. a
+    // Gmail-polling agent reporting a reassignment or PR approval it saw in email).
     public Task<List<DashboardEvent>> GetNotableEventsAsync(bool unacknowledgedOnly = false)
     {
-        var filter = Builders<DashboardEvent>.Filter.Nin(e => e.Type, ActivityOnlyTypes);
+        var filter = Builders<DashboardEvent>.Filter.Eq(e => e.IsExternal, true);
         if (unacknowledgedOnly) filter &= Builders<DashboardEvent>.Filter.Eq(e => e.Acknowledged, false);
         return Events.Find(filter).SortByDescending(e => e.CreatedAt).ToListAsync();
     }
 
     // The one entry point for events this app can't detect itself — e.g. a scheduled
-    // agent polling Azure DevOps/GitHub reporting a reassignment or PR approval it saw
-    // externally. Everything else is logged automatically by the methods above.
+    // agent polling Gmail/Azure DevOps/GitHub reporting a reassignment or PR approval it
+    // saw externally. Everything else is logged automatically by the methods above and
+    // stays out of the /events tab (see GetNotableEventsAsync).
     public async Task<DashboardEvent> LogExternalEventAsync(DashboardEvent evt)
     {
+        evt.IsExternal = true;
         evt.CreatedAt = DateTime.UtcNow;
         evt.Acknowledged = false;
         await Events.InsertOneAsync(evt);
