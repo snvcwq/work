@@ -31,6 +31,64 @@ export function initSortable(dotNetRef) {
     let dragStep = 0;       // dragEl's own height + the list's row gap
     let startY = 0;
     let currentDy = 0;
+    let minDy = 0;          // how far dragEl can move up: to the top slot, no further
+    let maxDy = 0;          // how far dragEl can move down: to the bottom slot, no further
+
+    // The list scrolls with the page itself (no inner scroll container), so a long list can
+    // be taller than the viewport. Without this, dragging to the top/bottom slot means
+    // releasing, scrolling the page by hand, and re-grabbing the row to keep going.
+    const AUTOSCROLL_EDGE = 80;      // px from the viewport edge that triggers autoscroll
+    const AUTOSCROLL_MAX_SPEED = 18; // px per frame once the pointer is right at the edge
+    let startScrollY = 0;
+    let lastClientY = 0;
+    let autoScrollFrame = null;
+
+    // Shared by pointermove and the autoscroll loop — a scroll can shift dragEl's target
+    // slot even while the pointer itself hasn't moved, so both need to recompute the same way.
+    function updateDragPosition() {
+        if (!dragEl) return;
+        currentDy = Math.max(minDy, Math.min(maxDy, (lastClientY - startY) + (window.scrollY - startScrollY)));
+        dragEl.style.transform = `translateY(${currentDy}px)`;
+
+        // Purely arithmetic, not a live-rect crossing check — applyPreview() already
+        // shifts every displaced row by exactly dragStep (dragEl's own size), not each
+        // row's individual height, so the threshold for "has dragEl passed the next
+        // slot" has to be computed the same way. Reading getBoundingClientRect() on a
+        // sibling here used to double- or under-count crossings: those rows have a
+        // 0.15s transform transition running, so a rect read moments after
+        // applyPreview() sets a new transform can land mid-animation instead of at the
+        // resting position, especially across several pointermove events fired in
+        // quick succession during a real drag.
+        const rawIndex = dragOriginalIndex + Math.round(currentDy / dragStep);
+        const newTarget = Math.max(0, Math.min(rows.length - 1, rawIndex));
+        if (newTarget !== targetIndex) {
+            targetIndex = newTarget;
+            applyPreview();
+        }
+    }
+
+    // Runs continuously during a drag (not just on pointermove) — the pointer can sit dead
+    // still right at the viewport edge and the page still needs to keep scrolling.
+    function autoScrollStep() {
+        if (!dragEl) { autoScrollFrame = null; return; }
+
+        let speed = 0;
+        if (lastClientY < AUTOSCROLL_EDGE) {
+            const depth = (AUTOSCROLL_EDGE - lastClientY) / AUTOSCROLL_EDGE;
+            speed = -Math.ceil(depth * AUTOSCROLL_MAX_SPEED);
+        } else if (lastClientY > window.innerHeight - AUTOSCROLL_EDGE) {
+            const depth = (lastClientY - (window.innerHeight - AUTOSCROLL_EDGE)) / AUTOSCROLL_EDGE;
+            speed = Math.ceil(depth * AUTOSCROLL_MAX_SPEED);
+        }
+
+        if (speed !== 0) {
+            const before = window.scrollY;
+            window.scrollBy(0, speed);
+            if (window.scrollY !== before) updateDragPosition();
+        }
+
+        autoScrollFrame = requestAnimationFrame(autoScrollStep);
+    }
 
     // What the full order would be if `rows` were actually spliced — used as the final
     // committed order once the drag ends.
@@ -76,6 +134,16 @@ export function initSortable(dotNetRef) {
 
         startY = e.clientY;
         currentDy = 0;
+        // dragEl can only travel within the list itself — up to the first slot, down to the
+        // last — never past either end into whatever sits above/below the list (page header,
+        // filter bar, add-form). Clamped here once, from the fixed `rows` snapshot, rather than
+        // in pointermove against live rects for the same reason applyPreview() avoids them.
+        minDy = -(dragOriginalIndex * dragStep);
+        maxDy = (rows.length - 1 - dragOriginalIndex) * dragStep;
+
+        startScrollY = window.scrollY;
+        lastClientY = e.clientY;
+        if (autoScrollFrame === null) autoScrollFrame = requestAnimationFrame(autoScrollStep);
 
         rows.forEach(r => { if (r !== dragEl) r.style.transition = "transform 0.15s ease"; });
         row.style.transition = "none";
@@ -91,25 +159,8 @@ export function initSortable(dotNetRef) {
 
     list.addEventListener("pointermove", (e) => {
         if (!dragEl) return;
-
-        currentDy = e.clientY - startY;
-        dragEl.style.transform = `translateY(${currentDy}px)`;
-
-        // Purely arithmetic, not a live-rect crossing check — applyPreview() already
-        // shifts every displaced row by exactly dragStep (dragEl's own size), not each
-        // row's individual height, so the threshold for "has dragEl passed the next
-        // slot" has to be computed the same way. Reading getBoundingClientRect() on a
-        // sibling here used to double- or under-count crossings: those rows have a
-        // 0.15s transform transition running, so a rect read moments after
-        // applyPreview() sets a new transform can land mid-animation instead of at the
-        // resting position, especially across several pointermove events fired in
-        // quick succession during a real drag.
-        const rawIndex = dragOriginalIndex + Math.round(currentDy / dragStep);
-        const newTarget = Math.max(0, Math.min(rows.length - 1, rawIndex));
-        if (newTarget !== targetIndex) {
-            targetIndex = newTarget;
-            applyPreview();
-        }
+        lastClientY = e.clientY;
+        updateDragPosition();
     });
 
     async function endDrag() {
@@ -117,6 +168,10 @@ export function initSortable(dotNetRef) {
         const row = dragEl;
         const finalOrder = conceptualOrder();
         dragEl = null;
+        if (autoScrollFrame !== null) {
+            cancelAnimationFrame(autoScrollFrame);
+            autoScrollFrame = null;
+        }
 
         row.classList.remove("task-row-dragging");
         document.body.classList.remove("task-dragging-active");
