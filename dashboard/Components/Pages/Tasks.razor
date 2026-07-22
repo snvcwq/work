@@ -223,6 +223,7 @@
     {
         WorkStatus.Undefined => "undefined",
         WorkStatus.New => "new",
+        WorkStatus.Active => "active",
         WorkStatus.Blocker => "blocker",
         WorkStatus.PrWaitingForReview => "pr waiting for review",
         WorkStatus.PrApproved => "pr approved",
@@ -235,13 +236,14 @@
         _ => s.ToString()
     };
 
-    // PrApproved/PrMerged/Released were appended to the enum (to keep existing stored
+    // PrApproved/PrMerged/Released/Active were appended to the enum (to keep existing stored
     // statuses' int values stable) but read better slotted into the natural pr → release
     // lifecycle here.
     private static readonly WorkStatus[] WorkStatusOrder =
     [
         WorkStatus.Undefined,
         WorkStatus.New,
+        WorkStatus.Active,
         WorkStatus.Blocker,
         WorkStatus.PrWaitingForReview,
         WorkStatus.PrApproved,

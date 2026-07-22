@@ -47,7 +47,10 @@ public enum WorkStatus
     // Tasks.razor/TaskDetail.razor) despite landing at the end of the declaration here.
     PrApproved,
     PrMerged,
-    Released
+    Released,
+    // Displayed right after New (see WorkStatusOrder in Tasks.razor/TaskDetail.razor)
+    // despite landing at the end of the declaration here.
+    Active
 }
 
 // Mirrors Azure Boards' work item types. Same append-only rule as WorkStatus above.
