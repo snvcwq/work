@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace dashboard.Endpoints;
 
 // For events this app can't detect itself — a scheduled agent reporting something it
@@ -7,7 +9,7 @@ public record CreateEventRequest(
     string Type,
     string? Summary,
     string? TaskId,
-    string? TaskNumber,
+    [property: JsonConverter(typeof(FlexibleStringConverter))] string? TaskNumber,
     string? PrId,
-    string? PrNumber,
+    [property: JsonConverter(typeof(FlexibleStringConverter))] string? PrNumber,
     Dictionary<string, string>? Context);
